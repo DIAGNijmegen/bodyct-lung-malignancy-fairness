@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 
 import sklearn.metrics as skl_metrics
 
+ILST_THRESHOLD = 0.0151
+
 ## Plot settings (adapted from Kiran and Thijmen's repos)
 sns.set_style("white")
 sns.set_theme(
@@ -84,3 +86,73 @@ def ax_rocs(ax, rocs, title=None, plot_ci=False):
     #     t.set_ha('right') # ha is alias for horizontalalignment
     #     t.set_position((shift - t.get_window_extent().width,0))
 
+def rocs_models(df, true_col='label', 
+                models={
+                    "Venkadesh": "Ensemble_Kiran",
+                    "de Haas": "thijmen_mean",
+                    "Sybil": "sybil_year1",
+                    "PanCan2b": "PanCan2b",
+                }, 
+                dataset_label="DLCST", subset_label="all", imgpath=None, plot_ci=False):
+    rocs = {}
+    for m in models:
+        rocs[m] = get_bootstrapped_roc_ci_curves(df[models[m]].values, df[true_col].values)
+    
+    plot_rocs(rocs, f'{dataset_label} ({subset_label} patients, n={len(df)}) ROC Curves Across Models ', imgpath, plot_ci)
+
+def stats_from_cm(tp, tn, fp, fn):
+    metrics = {
+        "num": tp + fp + fn + tn,
+        "tp": tp, "fp": fp, "tn": tn, "fn": fn,
+        "tpr": tp / (tp + fn), ## Recall, sensitivity, hit rate 
+        "fpr": fp / (fp + tn), ## Overdiagnosis: incorrect malignant classification 
+        "fnr": fn / (tp + fn), ## Underdiagnosis: malignant classification missed 
+        "tnr": tn / (tn + fp), ## Specificity
+        "ppv": tp / (tp + fp), ## Precision: positive predictive value
+        "npv": tn / (tn + fn), ## negative predictive value
+        "fdr": fp / (fp + tp), ## False discovery rate
+        "for": fn / (fn + tn), ## False omission rate,
+        "acc": (tp + tn) / (tp + fp + fn + tn)
+    }
+    return metrics
+
+def cm_with_thres(df, threshold=ILST_THRESHOLD, pred_col='DL', true_col='label'):
+    y_true = df[true_col].to_numpy()
+    y_pred = (df[pred_col] > threshold).astype(int).to_numpy()
+    tn, fp, fn, tp = skl_metrics.confusion_matrix(y_true, y_pred).ravel()
+    return tp, tn, fp, fn
+
+def info_by_splits(groups):
+    cat_info = {'num': [], 'pct': [], 'num_mal': [], 'pct_mal': []}
+    cat_vals = []
+    n = sum(len(df) for _, df in groups)
+
+    plot_roc = True
+    for val, df_group in groups:
+        cat_vals.append(val)
+        cat_info['num'].append(len(df_group))
+        cat_info['pct'].append(100 * len(df_group) / n)
+        cat_info['num_mal'].append(len(df_group.query('label == 1')))
+        cat_info['pct_mal'].append(100 * len(df_group.query('label == 1')) / len(df_group))
+
+        if len(df_group.query('label == 1')) == 0 or len(df_group.query('label == 1')) == len(df_group):
+            plot_roc = False
+    
+    df_catinfo = pd.DataFrame(cat_info, index=cat_vals)
+    return df_catinfo, plot_roc
+
+def perf_by_splits(groups, pred_col='DL', true_col='label', threshold=ILST_THRESHOLD):
+    rocs = {}
+    stats = []
+    vals = []
+
+    for val, df_group in groups:
+        y_true = df_group[true_col].values
+        y_pred = df_group[pred_col].values
+        rocs[val] = get_bootstrapped_roc_ci_curves(y_pred, y_true)
+
+        vals.append(val)
+        stats.append(stats_from_cm(*cm_with_thres(df_group, threshold=threshold, pred_col=pred_col, true_col=true_col)))
+
+    df_modelperf = pd.DataFrame(stats, index=vals)
+    return rocs, df_modelperf
