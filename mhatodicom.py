@@ -3,6 +3,7 @@ import time
 import pandas as pd
 import SimpleITK as sitk
 import numpy as np
+import time
 from pathlib import Path
 
 def read_csv_series_instance_uids(csv_path):
@@ -126,17 +127,34 @@ def process_mha_file(mha_path, base_output_folder):
     return output_subfolder
 
 if __name__ == "__main__":
-    csv_path = r"W:\experiments\Sybil_Fennie\DLCST\Ensemble_Sybil\all_cases\missing_uids.csv"
-    src_dir = r"W:\experiments\0-dlcst-mha"
-    output_folder_path = r"W:\experiments\Sybil_Fennie\DLCST\DICOM_files\missinguids"
+    ## directory where results are
+    DATASET_NAME = "nlst"
+    LOCAL_PC = True
+    root_dir = "/mnt/w" if LOCAL_PC else "/data/bodyct"
+    EXPERIMENT_DIR = f"{root_dir}/experiments/lung-malignancy-fairness-shaurya"
+    DATA_DIR = f"{EXPERIMENT_DIR}/{DATASET_NAME}"
 
-    series_instance_uids = read_csv_series_instance_uids(csv_path)
+    csv_path = f"{DATA_DIR}/nlst_kiran_thijmen_pancan_16077.csv"
+    src_dir = f"{root_dir}/experiments/0-{DATASET_NAME}-mha"
+    output_folder_path = f"{DATA_DIR}/DICOM_files"
 
-    for series_instance_uid in series_instance_uids:
+    series_instance_uids = read_csv_series_instance_uids(csv_path)[0:10]
+    
+    runtimes = []
+    for i, series_instance_uid in enumerate(series_instance_uids):
+        print(f"{i+1} / {len(series_instance_uids)} ...", end='\r')
+        start = time.time()
+
         mha_filename = series_instance_uid + '.mha'
         mha_filepath = os.path.join(src_dir, mha_filename)
         if os.path.exists(mha_filepath):
             output_subfolder = process_mha_file(mha_filepath, output_folder_path)
             mha_to_dicom(mha_filepath, output_subfolder)
+            
+            end = time.time()
+            runtimes.append(end - start)
         else:
             print(f"File {mha_filename} not found in the source directory.")
+
+    print("total time:", sum(runtimes))
+    print("average:", sum(runtimes) / len(runtimes))
