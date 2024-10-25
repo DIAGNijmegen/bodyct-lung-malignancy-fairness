@@ -147,14 +147,14 @@ def process_mha_file(mha_path, base_output_folder):
         os.makedirs(output_subfolder)
     return output_subfolder
 
-def mha_dicom_process(series_instance_uid):
+def mha_dicom_process(i, total, series_instance_uid):
     src_dir = f"{root_dir}/experiments/0-{DATASET_NAME}-mha"
     output_folder_path = f"{DATA_DIR}/DICOM_files"
 
     mha_filename = series_instance_uid + '.mha'
     mha_filepath = os.path.join(src_dir, mha_filename)
 
-    print(f"starting to convert {series_instance_uid} ... ")
+    print(f"{i+1} / {total}: starting to convert {series_instance_uid} ... ")
     if os.path.exists(mha_filepath):
         start = time.time()
         
@@ -162,25 +162,28 @@ def mha_dicom_process(series_instance_uid):
         success = mha_to_dicom(mha_filepath, output_subfolder)
         
         end = time.time()
-        if success: print(f"Successfully converted {series_instance_uid} in {end - start} seconds")
-        else: print(f"Took {end - start} seconds but failed to convert {series_instance_uid}")
+        if success:
+            print(f"{i+1} / {total}: SUCCESSfully converted {series_instance_uid} in {end - start} seconds")
+        if not success: 
+            print(f"{i+1} / {total}: Took {end - start} seconds but FAILED to convert {series_instance_uid}", file=sys.stderr)
     else:
         print(f"File {mha_filename} not found in the source directory.")
 
 if __name__ == "__main__":
     ## directory where results are
     DATASET_NAME = "nlst"
-    LOCAL_PC = True
+    LOCAL_PC = False
     root_dir = "/mnt/w" if LOCAL_PC else "/data/bodyct"
     EXPERIMENT_DIR = f"{root_dir}/experiments/lung-malignancy-fairness-shaurya"
     DATA_DIR = f"{EXPERIMENT_DIR}/{DATASET_NAME}"
 
     csv_path = f"{DATA_DIR}/nlst_kiran_thijmen_pancan_16077.csv"
 
-    series_instance_uids = read_csv_series_instance_uids(csv_path)[30:60]
+    series_instance_uids = read_csv_series_instance_uids(csv_path)
     
     total_start = time.time()
     converterpool = multiprocessing.Pool(len(series_instance_uids))
-    converterpool.map(mha_dicom_process, series_instance_uids)
+    converterpool.starmap(mha_dicom_process, 
+                      zip(range(len(series_instance_uids)), [len(series_instance_uids)] * len(series_instance_uids), series_instance_uids))
     total_end = time.time()
     print("total time:", total_end - total_start)

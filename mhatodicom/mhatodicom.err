@@ -1,0 +1,14 @@
+pyxis: importing docker image: doduo1.umcn.nl
+slurmstepd: error: pyxis: child 2592072 failed with error code: 1
+slurmstepd: error: pyxis: failed to import docker image
+slurmstepd: error: pyxis: printing enroot log file:
+slurmstepd: error: pyxis:     [INFO] Querying registry for permission grant
+slurmstepd: error: pyxis:     [INFO] Authenticating with user: <anonymous>
+slurmstepd: error: pyxis:     [INFO] Authentication succeeded
+slurmstepd: error: pyxis:     [INFO] Fetching image manifest list
+slurmstepd: error: pyxis:     [INFO] Fetching image manifest
+slurmstepd: error: pyxis:     [ERROR] URL https://registry-1.docker.io/v2/library/doduo1.umcn.nl/manifests/latest returned error code: 401 Unauthorized
+slurmstepd: error: pyxis: couldn't start container
+slurmstepd: error: spank: required plugin spank_pyxis.so: task_init() failed with rc=-1
+slurmstepd: error: Failed to invoke spank plugin stack
+slurmstepd: error: pyxis: child 2592164 failed with error code: 1
