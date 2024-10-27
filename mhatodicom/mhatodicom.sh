@@ -1,14 +1,14 @@
 #!/bin/bash
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=16
-#SBATCH --gpus-per-task=1
+#SBATCH --cpus-per-task=32
+#SBATCH --gpus-per-task=0
 #SBATCH --mem=16G
 #SBATCH --time=48:00:00
 #SBATCH --qos=high
-#SBATCH --nodelist=dlc-nidoking
+#SBATCH --nodelist=dlc-groudon
 #SBATCH --no-container-remap-root
 #SBATCH --container-mounts=/data/bodyct:/data/bodyct
-#SBATCH --container-image=doduo1.umcn.nl#fennievandergraaf/inference_sybil:0
+#SBATCH --container-image="doduo1.umcn.nl#uokbaseimage/diag:tf2.12-pt2.0-v1" 
 #SBATCH --output=mhatodicom.out
 #SBATCH --error=mhatodicom.err
 

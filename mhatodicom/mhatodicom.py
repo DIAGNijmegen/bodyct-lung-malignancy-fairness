@@ -168,6 +168,8 @@ def mha_dicom_process(i, total, series_instance_uid):
             print(f"{i+1} / {total}: Took {end - start} seconds but FAILED to convert {series_instance_uid}", file=sys.stderr)
     else:
         print(f"File {mha_filename} not found in the source directory.")
+    
+    return
 
 if __name__ == "__main__":
     ## directory where results are
@@ -182,7 +184,7 @@ if __name__ == "__main__":
     series_instance_uids = read_csv_series_instance_uids(csv_path)
     
     total_start = time.time()
-    converterpool = multiprocessing.Pool(len(series_instance_uids))
+    converterpool = multiprocessing.Pool()
     converterpool.starmap(mha_dicom_process, 
                       zip(range(len(series_instance_uids)), [len(series_instance_uids)] * len(series_instance_uids), series_instance_uids))
     total_end = time.time()
