@@ -1,4 +1,29 @@
-pyxis: importing docker image: doduo1.umcn.nl#uokbaseimage/diag:tf2.12-pt2.0-v1
-pyxis: imported docker image: doduo1.umcn.nl#uokbaseimage/diag:tf2.12-pt2.0-v1
-slurmstepd: error: *** JOB 95972 ON dlc-groudon CANCELLED AT 2024-10-23T10:52:04 ***
-slurmstepd: error: Detected 1 oom_kill event in StepId=95972.batch. Some of the step tasks have been OOM Killed.
+Traceback (most recent call last):
+  File "check_mhatodicom.py", line 69, in <module>
+    result_bools = converterpool.starmap(mha_dicom_process, 
+  File "/usr/lib/python3.8/multiprocessing/pool.py", line 372, in starmap
+    return self._map_async(func, iterable, starmapstar, chunksize).get()
+  File "/usr/lib/python3.8/multiprocessing/pool.py", line 765, in get
+    self.wait(timeout)
+  File "/usr/lib/python3.8/multiprocessing/pool.py", line 762, in wait
+    self._event.wait(timeout)
+  File "/usr/lib/python3.8/threading.py", line 558, in wait
+    signaled = self._cond.wait(timeout)
+  File "/usr/lib/python3.8/threading.py", line 302, in wait
+    waiter.acquire()
+KeyboardInterrupt
+Error in atexit._run_exitfuncs:
+Traceback (most recent call last):
+  File "/usr/lib/python3.8/multiprocessing/util.py", line 300, in _run_finalizers
+    finalizer()
+  File "/usr/lib/python3.8/multiprocessing/util.py", line 224, in __call__
+    res = self._callback(*self._args, **self._kwargs)
+  File "/usr/lib/python3.8/multiprocessing/pool.py", line 729, in _terminate_pool
+    p.join()
+  File "/usr/lib/python3.8/multiprocessing/process.py", line 149, in join
+    res = self._popen.wait(timeout)
+  File "/usr/lib/python3.8/multiprocessing/popen_fork.py", line 47, in wait
+    return self.poll(os.WNOHANG if timeout == 0.0 else 0)
+  File "/usr/lib/python3.8/multiprocessing/popen_fork.py", line 27, in poll
+    pid, sts = os.waitpid(self.pid, flag)
+KeyboardInterrupt

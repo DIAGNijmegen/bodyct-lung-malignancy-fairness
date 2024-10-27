@@ -61,7 +61,7 @@ def check_all_slices_created(output_dir, depth):
     wanted_names = set([f"{i}.dcm" for i in range(depth)])
     actual_names = set(os.listdir(output_dir))
     name_diffs = set(wanted_names - actual_names)
-    return list(name_diffs)
+    return list(sorted([int(s.split('.')[0]) for s in name_diffs]))
 
 def mha_to_dicom(mha_file, output_dir, pixel_dtype=np.int16):
     try:
@@ -174,16 +174,19 @@ def mha_dicom_process(i, total, series_instance_uid):
 if __name__ == "__main__":
     ## directory where results are
     DATASET_NAME = "nlst"
-    LOCAL_PC = False
+    LOCAL_PC = True
     root_dir = "/mnt/w" if LOCAL_PC else "/data/bodyct"
     EXPERIMENT_DIR = f"{root_dir}/experiments/lung-malignancy-fairness-shaurya"
     DATA_DIR = f"{EXPERIMENT_DIR}/{DATASET_NAME}"
 
-    csv_path = f"{DATA_DIR}/nlst_kiran_thijmen_pancan_16077.csv"
-
-    series_instance_uids = read_csv_series_instance_uids(csv_path)
+    # csv_path = f"{DATA_DIR}/nlst_kiran_thijmen_pancan_16077.csv"
+    # series_instance_uids = read_csv_series_instance_uids(csv_path)
     
+    checkdf = pd.read_csv(f"{DATA_DIR}/mhatodicom_check.csv")
+    series_instance_uids = checkdf.query('mhaDicomConverted == False')['SeriesInstanceUID']
+
     total_start = time.time()
+    print(f"starting to read {len(series_instance_uids)} series instance uids")
     converterpool = multiprocessing.Pool()
     converterpool.starmap(mha_dicom_process, 
                       zip(range(len(series_instance_uids)), [len(series_instance_uids)] * len(series_instance_uids), series_instance_uids))
