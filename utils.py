@@ -9,6 +9,15 @@ import matplotlib.pyplot as plt
 import sklearn.metrics as skl_metrics
 
 ILST_THRESHOLD = 0.0151
+MODEL_TO_COL = {
+    "Venkadesh": "DL",
+    "de Haas Combined": "Thijmen_mean",
+    "de Haas Local": "Thijmen_local",
+    "de Haas Global (hidden nodule)": "Thijmen_global_hidden",
+    "de Haas Global (shown nodule)": "Thijmen_global_show",
+    "Sybil": "sybil_year1",
+    "PanCan2b": "PanCan2b",
+}
 
 ## Plot settings (adapted from Kiran and Thijmen's repos)
 sns.set_style("white")
@@ -156,3 +165,27 @@ def perf_by_splits(groups, pred_col='DL', true_col='label', threshold=ILST_THRES
 
     df_modelperf = pd.DataFrame(stats, index=vals)
     return rocs, df_modelperf
+
+def plot_by_category(df, cat, models=MODEL_TO_COL.keys(), min_mal=2):
+    groups = df.groupby(cat) 
+    df_catinfo, plot_roc = info_by_splits(groups)
+    print(df_catinfo)
+
+    if (plot_roc == False) or (min(df_catinfo['num_mal']) < min_mal):
+        print("Not plotting ROC since there are zero values for malignant or benign nodules :(")
+        return df_catinfo
+
+    rocs = {}
+    perfs = {}
+    for m in models:
+        rocs[m], perfs[m] = perf_by_splits(groups, pred_col=MODEL_TO_COL[m])
+        print(m)
+        print(perfs[m])
+
+    fig, ax = plt.subplots(1, len(models), figsize=(6.5*len(models) - 0.5, 6))
+    fig.suptitle(f"Model Performance Split By {cat}")
+    for i, m in enumerate(models):
+        ax_rocs(ax[i], rocs[m], title=m)
+    plt.show()
+
+    return df_catinfo, perfs        
