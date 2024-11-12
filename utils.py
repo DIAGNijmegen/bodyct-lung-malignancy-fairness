@@ -96,12 +96,7 @@ def ax_rocs(ax, rocs, title=None, plot_ci=False):
     #     t.set_position((shift - t.get_window_extent().width,0))
 
 def rocs_models(df, true_col='label', 
-                models={
-                    "Venkadesh": "Ensemble_Kiran",
-                    "de Haas": "thijmen_mean",
-                    "Sybil": "sybil_year1",
-                    "PanCan2b": "PanCan2b",
-                }, 
+                models=MODEL_TO_COL, 
                 dataset_label="DLCST", subset_label="all", imgpath=None, plot_ci=False):
     rocs = {}
     for m in models:
@@ -166,21 +161,18 @@ def perf_by_splits(groups, pred_col='DL', true_col='label', threshold=ILST_THRES
     df_modelperf = pd.DataFrame(stats, index=vals)
     return rocs, df_modelperf
 
-def plot_by_category(df, cat, models=MODEL_TO_COL.keys(), min_mal=2):
+def roc_cm_by_category(df, cat, models=MODEL_TO_COL, min_mal=2, threshold=ILST_THRESHOLD):
     groups = df.groupby(cat) 
     df_catinfo, plot_roc = info_by_splits(groups)
-    print(df_catinfo)
 
     if (plot_roc == False) or (min(df_catinfo['num_mal']) < min_mal):
-        print("Not plotting ROC since there are zero values for malignant or benign nodules :(")
-        return df_catinfo
+        print("Not plotting ROC since there are not enough malignant or benign nodules in a category :(")
+        return df_catinfo, {}
 
     rocs = {}
     perfs = {}
     for m in models:
-        rocs[m], perfs[m] = perf_by_splits(groups, pred_col=MODEL_TO_COL[m])
-        print(m)
-        print(perfs[m])
+        rocs[m], perfs[m] = perf_by_splits(groups, pred_col=models[m], threshold=threshold)
 
     fig, ax = plt.subplots(1, len(models), figsize=(6.5*len(models) - 0.5, 6))
     fig.suptitle(f"Model Performance Split By {cat}")
@@ -188,4 +180,24 @@ def plot_by_category(df, cat, models=MODEL_TO_COL.keys(), min_mal=2):
         ax_rocs(ax[i], rocs[m], title=m)
     plt.show()
 
-    return df_catinfo, perfs        
+    return df_catinfo, perfs
+
+def prep_nlst_preds(df, scanlevel=True, sybil=True, tijmen=True):
+    if scanlevel:
+        nodule_drop_cols = ['NoduleType', 'CoordX', 'CoordY', 'CoordZ', 'NoduleID', 'AnnotationID']
+        nodule_agg_cols = ['Spiculation', 'Diameter [mm]', 'NoduleCounts', 'NoduleInUpperLung']
+        model_cols = ['DL', 'PanCan2b', 'label',
+                    'Thijmen_mean', 'Thijmen_global_hidden', 'Thijmen_global_show', 'Thijmen_local']
+        # Not including Sybil here because it's already scan-level of course.
+        
+        df = df.drop(nodule_drop_cols, axis=1)
+        dfgb = df.groupby('SeriesInstanceUID')
+
+        for c in nodule_agg_cols + model_cols:
+            df[c] = dfgb[c].transform(max)
+        
+        df = df.drop_duplicates(['SeriesInstanceUID'], ignore_index=True)
+    
+    if tijmen: df = df[(~df['Thijmen_mean'].isna())]
+    if sybil: df = df[(~df['sybil_year1'].isna())]
+    return df
