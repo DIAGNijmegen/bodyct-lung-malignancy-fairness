@@ -126,10 +126,11 @@ def cm_with_thres(df, threshold=ILST_THRESHOLD, pred_col='DL', true_col='label')
     tn, fp, fn, tp = skl_metrics.confusion_matrix(y_true, y_pred).ravel()
     return tp, tn, fp, fn
 
-def info_by_splits(groups):
+def info_by_splits(groups, min_mal):
     cat_info = {'num': [], 'pct': [], 'num_mal': [], 'pct_mal': []}
     cat_vals = []
     n = sum(len(df) for _, df in groups)
+    skips = []
 
     plot_roc = True
     for val, df_group in groups:
@@ -139,40 +140,37 @@ def info_by_splits(groups):
         cat_info['num_mal'].append(len(df_group.query('label == 1')))
         cat_info['pct_mal'].append(100 * len(df_group.query('label == 1')) / len(df_group))
 
-        if len(df_group.query('label == 1')) == 0 or len(df_group.query('label == 1')) == len(df_group):
-            plot_roc = False
+        if len(df_group.query('label == 1')) < min_mal or len(df_group.query('label == 1')) == len(df_group):
+            skips.append(val)
     
     df_catinfo = pd.DataFrame(cat_info, index=cat_vals)
-    return df_catinfo, plot_roc
+    return df_catinfo, skips
 
-def perf_by_splits(groups, pred_col='DL', true_col='label', threshold=ILST_THRESHOLD):
+def perf_by_splits(groups, pred_col='DL', true_col='label', threshold=ILST_THRESHOLD, skips=[]):
     rocs = {}
     stats = []
     vals = []
 
     for val, df_group in groups:
-        y_true = df_group[true_col].values
-        y_pred = df_group[pred_col].values
-        rocs[val] = get_bootstrapped_roc_ci_curves(y_pred, y_true)
+        if val not in skips:
+            y_true = df_group[true_col].values
+            y_pred = df_group[pred_col].values
+            rocs[val] = get_bootstrapped_roc_ci_curves(y_pred, y_true)
 
-        vals.append(val)
-        stats.append(stats_from_cm(*cm_with_thres(df_group, threshold=threshold, pred_col=pred_col, true_col=true_col)))
+            vals.append(val)
+            stats.append(stats_from_cm(*cm_with_thres(df_group, threshold=threshold, pred_col=pred_col, true_col=true_col)))
 
     df_modelperf = pd.DataFrame(stats, index=vals)
     return rocs, df_modelperf
 
 def roc_cm_by_category(df, cat, models=MODEL_TO_COL, min_mal=2, threshold=ILST_THRESHOLD):
     groups = df.groupby(cat) 
-    df_catinfo, plot_roc = info_by_splits(groups)
-
-    if (plot_roc == False) or (min(df_catinfo['num_mal']) < min_mal):
-        print("Not plotting ROC since there are not enough malignant or benign nodules in a category :(")
-        return df_catinfo, {}
+    df_catinfo, skips = info_by_splits(groups, min_mal)
 
     rocs = {}
     perfs = {}
     for m in models:
-        rocs[m], perfs[m] = perf_by_splits(groups, pred_col=models[m], threshold=threshold)
+        rocs[m], perfs[m] = perf_by_splits(groups, pred_col=models[m], threshold=threshold, skips=skips)
 
     fig, ax = plt.subplots(1, len(models), figsize=(6.5*len(models) - 0.5, 6))
     fig.suptitle(f"Model Performance Split By {cat}")
