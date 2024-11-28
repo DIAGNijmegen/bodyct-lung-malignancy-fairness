@@ -4,3 +4,4 @@ evalutils
 scikit-learn
 seaborn
 matplotlib
+scipy
