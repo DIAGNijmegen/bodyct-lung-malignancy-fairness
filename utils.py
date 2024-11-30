@@ -5,6 +5,7 @@ import numpy as np
 import seaborn as sns
 from evalutils.roc import get_bootstrapped_roc_ci_curves
 import matplotlib.pyplot as plt
+import scipy.stats
 
 import sklearn.metrics as skl_metrics
 
@@ -142,22 +143,28 @@ def rocs_models(
 
 
 def stats_from_cm(tp, tn, fp, fn):
-    metrics = {
-        "num": tp + fp + fn + tn,
-        "tp": tp,
-        "fp": fp,
-        "tn": tn,
-        "fn": fn,
-        "tpr": tp / (tp + fn),  ## Recall, sensitivity, hit rate
-        "fpr": fp / (fp + tn),  ## Overdiagnosis: incorrect malignant classification
-        "fnr": fn / (tp + fn),  ## Underdiagnosis: malignant classification missed
-        "tnr": tn / (tn + fp),  ## Specificity
-        "ppv": tp / (tp + fp),  ## Precision: positive predictive value
-        "npv": tn / (tn + fn),  ## negative predictive value
-        "fdr": fp / (fp + tp),  ## False discovery rate
-        "for": fn / (fn + tn),  ## False omission rate,
-        "acc": (tp + tn) / (tp + fp + fn + tn),
-    }
+    metrics = {}
+    metrics["num"] = tp + fp + fn + tn
+    metrics["tp"] = tp
+    metrics["fp"] = fp
+    metrics["tn"] = tn
+    metrics["fn"] = fn
+    metrics["tpr"] = tp / (tp + fn)  ## Recall, sensitivity, hit rate
+    metrics["fpr"] = fp / (
+        fp + tn
+    )  ## Overdiagnosis: incorrect malignant classification
+    metrics["fnr"] = fn / (tp + fn)  ## Underdiagnosis: malignant classification missed
+    metrics["tnr"] = tn / (tn + fp)  ## Specificity
+    metrics["ppv"] = tp / (tp + fp)  ## Precision: positive predictive value
+    metrics["npv"] = tn / (tn + fn)  ## negative predictive value
+    metrics["fdr"] = fp / (fp + tp)  ## False discovery rate
+    metrics["for"] = fn / (fn + tn)  ## False omission rate
+    metrics["acc"] = (tp + tn) / (tp + fp + fn + tn)
+    metrics["j"] = metrics["tpr"] - metrics["fpr"]
+    metrics["f1"] = (2 * tp) / (2 * tp + fp + fn)
+    metrics["mcc"] = np.sqrt(
+        metrics["tpr"] * metrics["tnr"] * metrics["ppv"] * metrics["npv"]
+    ) - np.sqrt(metrics["fpr"] * metrics["fnr"] * metrics["for"] * metrics["fdr"])
     return metrics
 
 
@@ -174,7 +181,6 @@ def info_by_splits(groups, min_mal):
     n = sum(len(df) for _, df in groups)
     skips = []
 
-    plot_roc = True
     for val, df_group in groups:
         cat_vals.append(val)
         cat_info["num"].append(len(df_group))
@@ -235,13 +241,73 @@ def roc_cm_by_category(
             groups, pred_col=models[m], threshold=threshold, skips=skips
         )
 
-    fig, ax = plt.subplots(1, len(models), figsize=(6.5 * len(models) - 0.5, 6))
+    do_sigtest = (len(df_catinfo) - len(skips)) == 2
+    bin_sigtest_results = {}
+
+    fig, ax = plt.subplots(1, len(models), figsize=(6.5 * len(models) - 0.5, 6.5))
     fig.suptitle(f"Model Performance Split By {cat}")
     for i, m in enumerate(models):
-        ax_rocs(ax[i], rocs[m], title=m)
+        title_str = m
+        if do_sigtest:
+            z, p = hanley_mcneil_sigtest(df_catinfo, skips, rocs[m])
+            title_str = f"{m}\n(z={z:.6f}, p={p:.6f})"
+            bin_sigtest_results[m] = {"z": z, "p": p}
+
+        ax_rocs(ax[i], rocs[m], title=title_str)
     plt.show()
 
-    return df_catinfo, perfs
+    df_sigtest_results = None
+    if do_sigtest:
+        df_sigtest_results = pd.DataFrame(bin_sigtest_results)
+
+    return df_catinfo, perfs, df_sigtest_results
+
+
+## Hanley-McNeil (1982) significance test for comparing two independent AUCs
+## From http://www.med.mcgill.ca/epidemiology/hanley/software/Hanley_McNeil_Radiology_82.pdf
+def hanley_mcneil_sigtest(df_catinfo, skips, rocs):
+    groups = list(set(df_catinfo.index.values) - set(skips))
+    if len(groups) != 2:
+        return np.nan, np.nan
+
+    # print(df_catinfo)
+
+    aucs = {}
+    ses = {}
+    for g in groups:
+        # print(g)
+        auc = skl_metrics.auc(rocs[g].fpr_vals, rocs[g].mean_tpr_vals)
+        # print("auc:", auc)
+        q1 = auc / (2 - auc)
+        q2 = (2 * auc * auc) / (1 + auc)
+        # print("q1:", q1, "q2:", q2)
+        n_mal = df_catinfo.loc[g]["num_mal"]
+        n_ben = df_catinfo.loc[g]["num"] - df_catinfo.loc[g]["num_mal"]
+        # print("mal:", n_mal, "ben:", n_ben)
+
+        se = np.sqrt(
+            (
+                auc * (1 - auc)
+                - (n_mal - 1) * (q1 - auc**2)
+                + (n_ben - 1) * (q2 - auc**2)
+            )
+            / (n_mal * n_ben)
+        )
+        # print("se:", se)
+        aucs[g] = auc
+        ses[g] = se
+
+    group1, group2 = groups[0], groups[1]
+
+    auc_diff = aucs[group1] - aucs[group2]
+    # print("aucdiff:", auc_diff)
+    se_diff = np.sqrt(ses[group1] ** 2 + ses[group2] ** 2)
+    # print("sediff:", se_diff)
+    z = auc_diff / se_diff
+    # print("z:", z)
+    p = scipy.stats.norm.sf(abs(z)) * 2  ## two-tailed p-value (Normal distribution)\
+    # print("p:", p)
+    return z, p
 
 
 def prep_nlst_preds(df, scanlevel=True, sybil=True, tijmen=True):
