@@ -350,3 +350,7 @@ def prep_nlst_preds(df, scanlevel=True, sybil=True, tijmen=True):
     if sybil:
         df = df[(~df["sybil_year1"].isna())]
     return df
+
+
+def bmi_calc(height, weight):
+    return (weight * 703) / (height * height)
