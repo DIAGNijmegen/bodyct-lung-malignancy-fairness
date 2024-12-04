@@ -341,7 +341,7 @@ def prep_nlst_preds(df, scanlevel=True, sybil=True, tijmen=True):
         dfgb = df.groupby("SeriesInstanceUID")
 
         for c in nodule_agg_cols + model_cols:
-            df[c] = dfgb[c].transform(max)
+            df[c] = dfgb[c].transform("max")
 
         df = df.drop_duplicates(["SeriesInstanceUID"], ignore_index=True)
 
@@ -354,3 +354,14 @@ def prep_nlst_preds(df, scanlevel=True, sybil=True, tijmen=True):
 
 def bmi_calc(height, weight):
     return (weight * 703) / (height * height)
+
+
+def corrmat(df, rows, cols, method="kendall", vmin=-1, vmax=1):
+    cols_list = list(set(rows).union(set(cols)))
+    corrmat = df[cols_list].corr(method=method)
+
+    plt.figure(figsize=(len(cols) * 0.6, len(rows) * 0.5))
+    sns.heatmap(corrmat.loc[rows, cols], vmin=vmin, vmax=vmax, cmap="RdYlGn")
+    plt.show()
+
+    return corrmat
