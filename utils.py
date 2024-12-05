@@ -369,12 +369,12 @@ def bmi_calc(height, weight):
     return (weight * 703) / (height * height)
 
 
-def corrmat(df, rows, cols, method="kendall", vmin=-1, vmax=1):
+def corrmat(df, rows, cols, method="kendall", vmin=-1, vmax=1, cmap="RdYlGn"):
     cols_list = list(set(rows).union(set(cols)))
     corrmat = df[cols_list].corr(method=method)
 
     plt.figure(figsize=(len(cols) * 0.6, len(rows) * 0.5))
-    sns.heatmap(corrmat.loc[rows, cols], vmin=vmin, vmax=vmax, cmap="RdYlGn")
+    sns.heatmap(corrmat.loc[rows, cols], vmin=vmin, vmax=vmax, cmap=cmap)
     plt.show()
 
     return corrmat
