@@ -244,7 +244,18 @@ def roc_cm_by_category(
     do_sigtest = (len(df_catinfo) - len(skips)) == 2
     bin_sigtest_results = {}
 
-    fig, ax = plt.subplots(1, len(models), figsize=(6.5 * len(models) - 0.5, 6.5))
+    if len(models) <= 5:
+        fig, ax = plt.subplots(1, len(models), figsize=(6 * len(models) - 0.5, 6))
+    else:
+        lm = len(models)
+        if lm % 2 == 1:
+            lm += 1
+        fig, ax = plt.subplots(
+            2, lm // 2, figsize=(6 * (lm // 2) - 0.5, 6 * 2), squeeze=False
+        )
+        ax = ax.flatten()
+        # ax = ax[0] + ax[1]
+
     fig.suptitle(f"Model Performance Split By {cat}")
     for i, m in enumerate(models):
         title_str = m
@@ -254,6 +265,8 @@ def roc_cm_by_category(
             bin_sigtest_results[m] = {"z": z, "p": p}
 
         ax_rocs(ax[i], rocs[m], title=title_str)
+
+    plt.tight_layout()
     plt.show()
 
     df_sigtest_results = None
