@@ -9,7 +9,7 @@ import scipy.stats
 
 import sklearn.metrics as skl_metrics
 
-ILST_THRESHOLD = 0.0151
+ILST_THRESHOLD = 0.06
 MODEL_TO_COL = {
     "Venkadesh": "DL",
     "de Haas Combined": "Thijmen_mean",
