@@ -326,7 +326,6 @@ def hanley_mcneil_sigtest(df_catinfo, skips, rocs):
 def prep_nlst_preds(df, scanlevel=True, sybil=True, tijmen=True):
     if scanlevel:
         nodule_drop_cols = [
-            "NoduleType",
             "CoordX",
             "CoordY",
             "CoordZ",
@@ -338,6 +337,13 @@ def prep_nlst_preds(df, scanlevel=True, sybil=True, tijmen=True):
             "Diameter [mm]",
             "NoduleCounts",
             "NoduleInUpperLung",
+            "Solid",  # Nodule Types
+            "GroundGlassOpacity",
+            "Perifissural",
+            "NonSolid",
+            "PartSolid",
+            "SemiSolid",
+            "Calcified",
         ]
         model_cols = [
             "DL",
@@ -347,6 +353,11 @@ def prep_nlst_preds(df, scanlevel=True, sybil=True, tijmen=True):
             "Thijmen_global_hidden",
             "Thijmen_global_show",
             "Thijmen_local",
+            "Thijmen_mean_cal",
+            "Thijmen_global_hidden_cal",
+            "Thijmen_global_show_cal",
+            "Thijmen_local_cal",
+            "DL_cal",
         ]
         # Not including Sybil here because it's already scan-level of course.
 
