@@ -145,6 +145,8 @@ def rocs_models(
 def stats_from_cm(tp, tn, fp, fn):
     metrics = {}
     metrics["num"] = tp + fp + fn + tn
+    metrics["mal"] = tp + fn
+    metrics["ben"] = fp + tn
     metrics["tp"] = tp
     metrics["fp"] = fp
     metrics["tn"] = tn
