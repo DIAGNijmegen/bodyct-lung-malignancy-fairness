@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import scipy.stats
 
 import sklearn.metrics as skl_metrics
+import warnings
 
 ILST_THRESHOLD = 0.06
 MODEL_TO_COL = {
@@ -151,22 +152,23 @@ def stats_from_cm(tp, tn, fp, fn):
     metrics["fp"] = fp
     metrics["tn"] = tn
     metrics["fn"] = fn
-    metrics["tpr"] = tp / (tp + fn)  ## Recall, sensitivity, hit rate
-    metrics["fpr"] = fp / (
-        fp + tn
-    )  ## Overdiagnosis: incorrect malignant classification
-    metrics["fnr"] = fn / (tp + fn)  ## Underdiagnosis: malignant classification missed
-    metrics["tnr"] = tn / (tn + fp)  ## Specificity
-    metrics["ppv"] = tp / (tp + fp)  ## Precision: positive predictive value
-    metrics["npv"] = tn / (tn + fn)  ## negative predictive value
-    metrics["fdr"] = fp / (fp + tp)  ## False discovery rate
-    metrics["for"] = fn / (fn + tn)  ## False omission rate
-    metrics["acc"] = (tp + tn) / (tp + fp + fn + tn)
-    metrics["j"] = metrics["tpr"] - metrics["fpr"]
-    metrics["f1"] = (2 * tp) / (2 * tp + fp + fn)
-    metrics["mcc"] = np.sqrt(
-        metrics["tpr"] * metrics["tnr"] * metrics["ppv"] * metrics["npv"]
-    ) - np.sqrt(metrics["fpr"] * metrics["fnr"] * metrics["for"] * metrics["fdr"])
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+
+        metrics["tpr"] = tp / (tp + fn)  ## Recall, sensitivity, hit rate
+        metrics["fpr"] = fp / (fp + tn)  ## Overdiagnosis
+        metrics["fnr"] = fn / (tp + fn)  ## Underdiagnosis
+        metrics["tnr"] = tn / (tn + fp)  ## Specificity
+        metrics["ppv"] = tp / (tp + fp)  ## Precision: positive predictive value
+        metrics["npv"] = tn / (tn + fn)  ## negative predictive value
+        metrics["fdr"] = fp / (fp + tp)  ## False discovery rate
+        metrics["for"] = fn / (fn + tn)  ## False omission rate
+        metrics["acc"] = (tp + tn) / (tp + fp + fn + tn)
+        metrics["j"] = metrics["tpr"] - metrics["fpr"]
+        metrics["f1"] = (2 * tp) / (2 * tp + fp + fn)
+        metrics["mcc"] = np.sqrt(
+            metrics["tpr"] * metrics["tnr"] * metrics["ppv"] * metrics["npv"]
+        ) - np.sqrt(metrics["fpr"] * metrics["fnr"] * metrics["for"] * metrics["fdr"])
     return metrics
 
 
