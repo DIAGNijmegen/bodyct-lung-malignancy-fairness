@@ -175,7 +175,7 @@ def stats_from_cm(tp, tn, fp, fn):
 def cm_with_thres(df, threshold=ILST_THRESHOLD, pred_col="DL", true_col="label"):
     y_true = df[true_col].to_numpy()
     y_pred = (df[pred_col] > threshold).astype(int).to_numpy()
-    tn, fp, fn, tp = skl_metrics.confusion_matrix(y_true, y_pred).ravel()
+    tn, fp, fn, tp = skl_metrics.confusion_matrix(y_true, y_pred, labels=[0, 1]).ravel()
     return tp, tn, fp, fn
 
 
@@ -237,6 +237,10 @@ def roc_cm_by_category(
 ):
     groups = df.groupby(cat)
     df_catinfo, skips = info_by_splits(groups, min_mal)
+
+    if len(df_catinfo) - len(skips) < 2:
+        print("Less than two groups. SKIP")
+        return df_catinfo, None, None
 
     rocs = {}
     perfs = {}
