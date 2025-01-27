@@ -32,51 +32,7 @@ sns.set_theme(
 color_palette = sns.color_palette("colorblind")
 
 
-def plot_rocs(rocs, title=None, imgpath=None, plot_ci=False, figsize=(6, 6)):
-    plt.figure(figsize=figsize)
-    plt.plot([0.0, 1.0], [0.0, 1.0], "--", color="k", alpha=0.5)
-    plt.xlabel("False Positive Rate", fontsize=14)
-    plt.ylabel("True Positive Rate", fontsize=14)
-    plt.xticks(np.arange(0, 1.1, 0.1), fontsize=12)  # X axis ticks in steps of 0.1
-    plt.yticks(np.arange(0, 1.1, 0.1), fontsize=12)  # Y axis ticks in steps of 0.1
-    plt.grid(lw=1)
-    plt.xlim(-0.005, 1)
-    plt.ylim(0, 1.005)
-
-    for i, label in enumerate(rocs):
-        roc = rocs[label]
-        # roc = get_bootstrapped_roc_ci_curves(df[MODEL_TO_COL[m]].values, df[true_col].values)
-        auc = skl_metrics.auc(roc.fpr_vals, roc.mean_tpr_vals)
-        plt.plot(
-            roc.fpr_vals,
-            roc.mean_tpr_vals,
-            color=color_palette[i],
-            label=f"{label}: AUC = {auc:.3f} (95% CI: {roc.low_az_val:.3f} - {roc.high_az_val:.3f})",
-        )
-        if plot_ci:
-            plt.fill_between(
-                roc.fpr_vals,
-                roc.low_tpr_vals,
-                roc.high_tpr_vals,
-                color=color_palette[i],
-                alpha=0.1,
-            )
-
-    if title:
-        plt.title(title, fontsize=14)
-
-    leg = plt.legend(loc="lower right", fontsize=12)
-    # shift = max([t.get_window_extent().width for t in leg.get_texts()])
-    # for t in leg.get_texts():
-    #     t.set_ha('right') # ha is alias for horizontalalignment
-    #     t.set_position((shift - t.get_window_extent().width,0))
-
-    if imgpath is not None:
-        plt.savefig(imgpath, dpi=600)
-    plt.show()
-
-
-def ax_rocs(ax, rocs, title=None, plot_ci=False):
+def ax_rocs(ax, curves, title=None, plot_ci=False):
     ax.plot([0.0, 1.0], [0.0, 1.0], "--", color="k", alpha=0.5)
     ax.set_xlabel("False Positive Rate", fontsize=14)
     ax.set_ylabel("True Positive Rate", fontsize=14)
@@ -90,10 +46,12 @@ def ax_rocs(ax, rocs, title=None, plot_ci=False):
     ax.set_xlim(-0.005, 1)
     ax.set_ylim(0, 1.005)
 
-    for i, label in enumerate(rocs):
-        roc = rocs[label]
+    aucs = {}
+    for i, label in enumerate(curves):
+        roc = curves[label]
         # roc = get_bootstrapped_roc_ci_curves(df[MODEL_TO_COL[m]].values, df[true_col].values)
         auc = skl_metrics.auc(roc.fpr_vals, roc.mean_tpr_vals)
+        aucs[label] = {"score": auc, "ci-hi": roc.high_az_val, "ci-lo": roc.low_az_val}
 
         ax.plot(
             roc.fpr_vals,
@@ -114,20 +72,54 @@ def ax_rocs(ax, rocs, title=None, plot_ci=False):
         ax.set_title(title, fontsize=14)
 
     leg = ax.legend(loc="lower right", fontsize=12)
-    # shift = max([t.get_window_extent().width for t in leg.get_texts()])
-    # for t in leg.get_texts():
-    #     t.set_ha('right') # ha is alias for horizontalalignment
-    #     t.set_position((shift - t.get_window_extent().width,0))
+    return pd.DataFrame(aucs)
+
+
+def ax_prcs(ax, curves, title=None, plot_ci=False):
+    ax.plot([0.0, 1.0], [0.5, 0.5], "--", color="k", alpha=0.5)
+    ax.set_xlabel("Recall", fontsize=14)
+    ax.set_ylabel("Precision", fontsize=14)
+    ax.set_xticks(
+        np.arange(0, 1.1, 0.1), np.around(np.arange(0, 1.1, 0.1), 1), fontsize=12
+    )  # X axis ticks in steps of 0.1
+    ax.set_yticks(
+        np.arange(0, 1.1, 0.1), np.around(np.arange(0, 1.1, 0.1), 1), fontsize=12
+    )  # Y axis ticks in steps of 0.1
+    ax.grid(lw=1)
+    ax.set_xlim(-0.005, 1)
+    ax.set_ylim(0, 1.005)
+
+    aucs = {}
+    for i, label in enumerate(curves):
+        prc = curves[label]
+        # roc = get_bootstrapped_roc_ci_curves(df[MODEL_TO_COL[m]].values, df[true_col].values)
+        auc = skl_metrics.auc(prc["recall"], prc["precision"])
+        aucs[label] = {"score": auc}
+
+        ax.plot(
+            prc["recall"],
+            prc["precision"],
+            color=color_palette[i],
+            label=f"{label}: AUC = {auc:.3f}",
+        )
+
+    if title:
+        ax.set_title(title, fontsize=14)
+
+    leg = ax.legend(loc="lower right", fontsize=12)
+    return pd.DataFrame(aucs)
 
 
 def rocs_models(
     df,
     true_col="label",
     models=MODEL_TO_COL,
-    dataset_label="DLCST",
+    dataset_label="NLST",
     subset_label="all",
+    title=None,
     imgpath=None,
     plot_ci=False,
+    figsize=(6, 6),
 ):
     rocs = {}
     for m in models:
@@ -135,12 +127,49 @@ def rocs_models(
             df[models[m]].values, df[true_col].values
         )
 
-    plot_rocs(
-        rocs,
-        f"{dataset_label} ({subset_label} patients, n={len(df)}) ROC Curves Across Models ",
-        imgpath,
-        plot_ci,
-    )
+    if title is None:
+        title = f"{dataset_label} (n={len(df)}) ROC Curves Across Models "
+
+    fig, ax = plt.subplots(1, 1, figsize=figsize)
+    auc_data = ax_rocs(ax=ax, curves=rocs, title=title, plot_ci=plot_ci)
+
+    if imgpath is not None:
+        plt.savefig(imgpath, dpi=600)
+    plt.show()
+
+    return auc_data
+
+
+def prcs_models(
+    df,
+    true_col="label",
+    models=MODEL_TO_COL,
+    dataset_label="NLST",
+    subset_label="all",
+    title=None,
+    imgpath=None,
+    plot_ci=False,
+    figsize=(6, 6),
+):
+    prcs = {}
+    for m in models:
+        y_true = df[true_col].values
+        y_pred = df[models[m]].values
+        precision, recall, thresholds = skl_metrics.precision_recall_curve(
+            y_true, y_pred
+        )
+        prcs[m] = {"precision": precision, "recall": recall, "thresholds": thresholds}
+
+    if title is None:
+        title = f"{dataset_label} (n={len(df)}) Precision Recall Curves Across Models "
+
+    fig, ax = plt.subplots(1, 1, figsize=figsize)
+    auc_data = ax_prcs(ax=ax, curves=prcs, title=title, plot_ci=False)
+
+    if imgpath is not None:
+        plt.savefig(imgpath, dpi=600)
+    plt.show()
+    return auc_data
 
 
 def stats_from_cm(tp, tn, fp, fn):
@@ -203,12 +232,8 @@ def info_by_splits(groups, min_mal):
     return df_catinfo, skips
 
 
-def perf_by_splits(
-    groups, pred_col="DL", true_col="label", threshold=ILST_THRESHOLD, skips=[]
-):
+def roc_by_splits(groups, pred_col="DL", true_col="label", skips=[]):
     rocs = {}
-    stats = []
-    vals = []
 
     for val, df_group in groups:
         if val not in skips:
@@ -216,25 +241,62 @@ def perf_by_splits(
             y_pred = df_group[pred_col].values
             rocs[val] = get_bootstrapped_roc_ci_curves(y_pred, y_true)
 
-            vals.append(val)
-            stats.append(
-                stats_from_cm(
-                    *cm_with_thres(
-                        df_group,
-                        threshold=threshold,
-                        pred_col=pred_col,
-                        true_col=true_col,
-                    )
+    return rocs
+
+
+def prc_by_splits(groups, pred_col="DL", true_col="label", skips=[]):
+    prcs = {}
+
+    for val, df_group in groups:
+        if val not in skips:
+            y_true = df_group[true_col].values
+            y_pred = df_group[pred_col].values
+            precision, recall, thresholds = skl_metrics.precision_recall_curve(
+                y_true, y_pred
+            )
+            prcs[val] = {
+                "precision": precision,
+                "recall": recall,
+                "thresholds": thresholds,
+            }
+
+    return prcs
+
+
+def threshold_metrics_by_splits(
+    groups, pred_col="DL", true_col="label", threshold=ILST_THRESHOLD
+):
+    stats = []
+    vals = []
+
+    for val, df_group in groups:
+        vals.append(val)
+        stats.append(
+            stats_from_cm(
+                *cm_with_thres(
+                    df_group,
+                    threshold=threshold,
+                    pred_col=pred_col,
+                    true_col=true_col,
                 )
             )
+        )
 
     df_modelperf = pd.DataFrame(stats, index=vals)
-    return rocs, df_modelperf
+    return df_modelperf
 
 
-def roc_cm_by_category(
-    df, cat, models=MODEL_TO_COL, min_mal=2, threshold=ILST_THRESHOLD
+def perf_by_splits(
+    groups, pred_col="DL", true_col="label", threshold=ILST_THRESHOLD, skips=[]
 ):
+    rocs = roc_by_splits(groups, pred_col, true_col, skips)
+    threshold_metrics = threshold_metrics_by_splits(
+        groups, pred_col, true_col, threshold
+    )
+    return rocs, threshold_metrics
+
+
+def roc_by_category(df, cat, models=MODEL_TO_COL, min_mal=2):
     groups = df.groupby(cat)
     df_catinfo, skips = info_by_splits(groups, min_mal)
 
@@ -243,11 +305,8 @@ def roc_cm_by_category(
         return df_catinfo, None, None
 
     rocs = {}
-    perfs = {}
     for m in models:
-        rocs[m], perfs[m] = perf_by_splits(
-            groups, pred_col=models[m], threshold=threshold, skips=skips
-        )
+        rocs[m] = roc_by_splits(groups, pred_col=models[m], skips=skips)
 
     do_sigtest = (len(df_catinfo) - len(skips)) == 2
     bin_sigtest_results = {}
@@ -264,7 +323,8 @@ def roc_cm_by_category(
         ax = ax.flatten()
         # ax = ax[0] + ax[1]
 
-    fig.suptitle(f"Model Performance Split By {cat}")
+    aucs = {}
+    fig.suptitle(f"Model ROC Curves Split By {cat}")
     for i, m in enumerate(models):
         title_str = m
         if do_sigtest:
@@ -272,7 +332,7 @@ def roc_cm_by_category(
             title_str = f"{m}\n(z={z:.6f}, p={p:.6f})"
             bin_sigtest_results[m] = {"z": z, "p": p}
 
-        ax_rocs(ax[i], rocs[m], title=title_str)
+        aucs[m] = ax_rocs(ax[i], rocs[m], title=title_str)
 
     plt.tight_layout()
     plt.show()
@@ -280,6 +340,71 @@ def roc_cm_by_category(
     df_sigtest_results = None
     if do_sigtest:
         df_sigtest_results = pd.DataFrame(bin_sigtest_results)
+
+    return df_catinfo, aucs, df_sigtest_results
+
+
+def prc_by_category(df, cat, models=MODEL_TO_COL, min_mal=2):
+    groups = df.groupby(cat)
+    df_catinfo, skips = info_by_splits(groups, min_mal)
+
+    if len(df_catinfo) - len(skips) < 2:
+        print("Less than two groups. SKIP")
+        return df_catinfo, None, None
+
+    prcs = {}
+    for m in models:
+        prcs[m] = prc_by_splits(groups, pred_col=models[m], skips=skips)
+
+    # do_sigtest = (len(df_catinfo) - len(skips)) == 2
+    # bin_sigtest_results = {}
+
+    if len(models) <= 5:
+        fig, ax = plt.subplots(1, len(models), figsize=(6 * len(models) - 0.5, 6))
+    else:
+        lm = len(models)
+        if lm % 2 == 1:
+            lm += 1
+        fig, ax = plt.subplots(
+            2, lm // 2, figsize=(6 * (lm // 2) - 0.5, 6 * 2), squeeze=False
+        )
+        ax = ax.flatten()
+        # ax = ax[0] + ax[1]
+
+    aucs = {}
+    fig.suptitle(f"Model Precision-Recall Curves Split By {cat}")
+    for i, m in enumerate(models):
+        title_str = m
+        # if do_sigtest:
+        #     z, p = hanley_mcneil_sigtest(df_catinfo, skips, prcs[m])
+        #     title_str = f"{m}\n(z={z:.6f}, p={p:.6f})"
+        #     bin_sigtest_results[m] = {"z": z, "p": p}
+
+        aucs[m] = ax_prcs(ax[i], prcs[m], title=title_str)
+
+    plt.tight_layout()
+    plt.show()
+
+    df_sigtest_results = None
+    # if do_sigtest:
+    #     df_sigtest_results = pd.DataFrame(bin_sigtest_results)
+
+    return df_catinfo, aucs, df_sigtest_results
+
+
+def roc_cm_by_category(
+    df, cat, models=MODEL_TO_COL, min_mal=2, threshold=ILST_THRESHOLD
+):
+    df_catinfo, aucs, df_sigtest_results = roc_by_category(
+        df, cat, models=MODEL_TO_COL, min_mal=2
+    )
+
+    groups = df.groupby(cat)
+    perfs = {}
+    for m in models:
+        perfs[m] = threshold_metrics_by_splits(
+            groups, pred_col=models[m], threshold=threshold
+        )
 
     return df_catinfo, perfs, df_sigtest_results
 
@@ -290,8 +415,6 @@ def hanley_mcneil_sigtest(df_catinfo, skips, rocs):
     groups = list(set(df_catinfo.index.values) - set(skips))
     if len(groups) != 2:
         return np.nan, np.nan
-
-    # print(df_catinfo)
 
     aucs = {}
     ses = {}
@@ -326,7 +449,7 @@ def hanley_mcneil_sigtest(df_catinfo, skips, rocs):
     # print("sediff:", se_diff)
     z = auc_diff / se_diff
     # print("z:", z)
-    p = scipy.stats.norm.sf(abs(z)) * 2  ## two-tailed p-value (Normal distribution)\
+    p = scipy.stats.norm.sf(abs(z)) * 2  ## two-tailed p-value (Normal distribution)
     # print("p:", p)
     return z, p
 
