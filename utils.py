@@ -17,7 +17,12 @@ MODEL_TO_COL = {
     "de Haas Local": "Thijmen_local",
     "de Haas Global (hidden nodule)": "Thijmen_global_hidden",
     "de Haas Global (shown nodule)": "Thijmen_global_show",
-    "Sybil": "sybil_year1",
+    "Sybil year 1": "sybil_year1",
+    "Sybil year 2": "sybil_year2",
+    "Sybil year 3": "sybil_year3",
+    "Sybil year 4": "sybil_year4",
+    "Sybil year 5": "sybil_year5",
+    "Sybil year 6": "sybil_year6",
     "PanCan2b": "PanCan2b",
 }
 
@@ -181,6 +186,7 @@ def stats_from_cm(tp, tn, fp, fn):
     metrics["fp"] = fp
     metrics["tn"] = tn
     metrics["fn"] = fn
+
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
 
@@ -192,12 +198,15 @@ def stats_from_cm(tp, tn, fp, fn):
         metrics["npv"] = tn / (tn + fn)  ## negative predictive value
         metrics["fdr"] = fp / (fp + tp)  ## False discovery rate
         metrics["for"] = fn / (fn + tn)  ## False omission rate
-        metrics["acc"] = (tp + tn) / (tp + fp + fn + tn)
-        metrics["j"] = metrics["tpr"] - metrics["fpr"]
-        metrics["f1"] = (2 * tp) / (2 * tp + fp + fn)
-        metrics["mcc"] = np.sqrt(
+        metrics["acc"] = (tp + tn) / (tp + fp + fn + tn)  ## Accuracy
+        metrics["j"] = (
+            metrics["tpr"] - metrics["fpr"]
+        )  ## Youden's J statistic (seen in some papers)
+        metrics["f1"] = (2 * tp) / (2 * tp + fp + fn)  ## f1 Score
+        metrics["mcc"] = np.sqrt(  ## Matthews Correlation Coefficient
             metrics["tpr"] * metrics["tnr"] * metrics["ppv"] * metrics["npv"]
         ) - np.sqrt(metrics["fpr"] * metrics["fnr"] * metrics["for"] * metrics["fdr"])
+
     return metrics
 
 
@@ -264,7 +273,7 @@ def prc_by_splits(groups, pred_col="DL", true_col="label", skips=[]):
 
 
 def threshold_metrics_by_splits(
-    groups, pred_col="DL", true_col="label", threshold=ILST_THRESHOLD
+    groups, pred_col="DL", true_col="label", threshold=ILST_THRESHOLD, include_all=False
 ):
     stats = []
     vals = []
@@ -302,14 +311,16 @@ def roc_by_category(df, cat, models=MODEL_TO_COL, min_mal=2):
 
     if len(df_catinfo) - len(skips) < 2:
         print("Less than two groups. SKIP")
-        return df_catinfo, None, None
+        return df_catinfo, None, None, None
 
     rocs = {}
+    z = {}
+    p = {}
     for m in models:
         rocs[m] = roc_by_splits(groups, pred_col=models[m], skips=skips)
+        z[m], p[m] = hanley_mcneil_sigtest(df_catinfo, skips, rocs[m])
 
-    do_sigtest = (len(df_catinfo) - len(skips)) == 2
-    bin_sigtest_results = {}
+    sigtest_on_plot = (len(df_catinfo) - len(skips)) == 2
 
     if len(models) <= 5:
         fig, ax = plt.subplots(1, len(models), figsize=(6 * len(models) - 0.5, 6))
@@ -327,21 +338,16 @@ def roc_by_category(df, cat, models=MODEL_TO_COL, min_mal=2):
     fig.suptitle(f"Model ROC Curves Split By {cat}")
     for i, m in enumerate(models):
         title_str = m
-        if do_sigtest:
-            z, p = hanley_mcneil_sigtest(df_catinfo, skips, rocs[m])
-            title_str = f"{m}\n(z={z:.6f}, p={p:.6f})"
-            bin_sigtest_results[m] = {"z": z, "p": p}
+        if sigtest_on_plot:
+            z_show, p_show = z[m].iloc[0, 1], p[m].iloc[0, 1]
+            title_str = f"{m}\n(z={z_show:.6f}, p={p_show:.6f})"
 
         aucs[m] = ax_rocs(ax[i], rocs[m], title=title_str)
 
     plt.tight_layout()
     plt.show()
 
-    df_sigtest_results = None
-    if do_sigtest:
-        df_sigtest_results = pd.DataFrame(bin_sigtest_results)
-
-    return df_catinfo, aucs, df_sigtest_results
+    return df_catinfo, aucs, z, p
 
 
 def prc_by_category(df, cat, models=MODEL_TO_COL, min_mal=2):
@@ -413,8 +419,8 @@ def roc_cm_by_category(
 ## From http://www.med.mcgill.ca/epidemiology/hanley/software/Hanley_McNeil_Radiology_82.pdf
 def hanley_mcneil_sigtest(df_catinfo, skips, rocs):
     groups = list(set(df_catinfo.index.values) - set(skips))
-    if len(groups) != 2:
-        return np.nan, np.nan
+    # if len(groups) != 2:
+    #     return np.nan, np.nan
 
     aucs = {}
     ses = {}
@@ -441,17 +447,25 @@ def hanley_mcneil_sigtest(df_catinfo, skips, rocs):
         aucs[g] = auc
         ses[g] = se
 
-    group1, group2 = groups[0], groups[1]
+    z = {g: {g: 0 for g in groups} for g in groups}
+    p = {g: {g: 1 for g in groups} for g in groups}
+    for group1 in groups:
+        for group2 in groups:
+            if group1 != group2:
+                # group1, group2 = groups[0], groups[1]
 
-    auc_diff = aucs[group1] - aucs[group2]
-    # print("aucdiff:", auc_diff)
-    se_diff = np.sqrt(ses[group1] ** 2 + ses[group2] ** 2)
-    # print("sediff:", se_diff)
-    z = auc_diff / se_diff
-    # print("z:", z)
-    p = scipy.stats.norm.sf(abs(z)) * 2  ## two-tailed p-value (Normal distribution)
-    # print("p:", p)
-    return z, p
+                auc_diff = aucs[group1] - aucs[group2]
+                # print("aucdiff:", auc_diff)
+                se_diff = np.sqrt(ses[group1] ** 2 + ses[group2] ** 2)
+                # print("sediff:", se_diff)
+                z[group1][group2] = auc_diff / se_diff
+                # print("z:", z)
+                p[group1][group2] = (
+                    scipy.stats.norm.sf(abs(z[group1][group2])) * 2
+                )  ## two-tailed p-value (Normal distribution)
+                # print("p:", p)
+
+    return pd.DataFrame(z), pd.DataFrame(p)
 
 
 def prep_nlst_preds(df, scanlevel=True, sybil=True, tijmen=True):
@@ -520,3 +534,51 @@ def corrmat(df, rows, cols, method="kendall", vmin=-1, vmax=1, cmap="RdYlGn"):
     plt.show()
 
     return corrmat
+
+
+DEFAULT_POLICIES = (
+    ("Sensitivity", 0.9),
+    ("Sensitivity", 1.0),
+    ("Specificity", 0.9),
+    ("Specificity", 1.0),
+    ("Youden J", 1.0),  ## Max J statistic
+)
+
+
+def get_threshold_policies(
+    df, models=MODEL_TO_COL, policies=DEFAULT_POLICIES, brock=True, precision=3
+):
+    threshold_perfs = {}
+    threshold_cands = np.arange(0, 1, 10 ** (-1 * precision))
+
+    for m in models:
+        stats = {}
+        for t in threshold_cands:
+            stats[np.around(t, precision)] = stats_from_cm(
+                *cm_with_thres(df, threshold=t, pred_col=models[m], true_col="label")
+            )
+
+        statdf = pd.DataFrame(stats).T
+        statdf["Sensitivity"] = statdf["tpr"]
+        statdf["Specificity"] = statdf["tnr"]
+        statdf["Youden J"] = statdf["j"]
+
+        threshold_perfs[m] = statdf
+
+    policy_thresholds = {}
+    for col, val in policies:
+        other_col = "Specificity" if col == "Sensitivity" else "Sensitivity"
+        policy_thresholds[f"{col}={val}"] = {}
+
+        for m in models:
+            df = threshold_perfs[m]
+            df[f"abs_diff"] = abs(df[col] - val)
+            df = df.sort_values(by=["abs_diff", other_col], ascending=[True, False])
+            df = df.drop(columns=["abs_diff"])
+            policy_thresholds[f"{col}={val}"][m] = list(df.index.values)[0]
+
+    policy_threshold_df = pd.DataFrame(policy_thresholds)
+    if brock:
+        policy_threshold_df["Brock"] = [ILST_THRESHOLD] * len(policy_threshold_df)
+
+    return policy_threshold_df, threshold_perfs
