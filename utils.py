@@ -37,7 +37,7 @@ sns.set_theme(
 color_palette = sns.color_palette("colorblind")
 
 
-def ax_rocs(ax, curves, title=None, plot_ci=False):
+def ax_rocs(ax, curves, title=None, plot_ci=False, catinfo=None):
     ax.plot([0.0, 1.0], [0.0, 1.0], "--", color="k", alpha=0.5)
     ax.set_xlabel("False Positive Rate", fontsize=14)
     ax.set_ylabel("True Positive Rate", fontsize=14)
@@ -47,7 +47,8 @@ def ax_rocs(ax, curves, title=None, plot_ci=False):
     ax.set_yticks(
         np.arange(0, 1.1, 0.1), np.around(np.arange(0, 1.1, 0.1), 1), fontsize=12
     )  # Y axis ticks in steps of 0.1
-    ax.grid(lw=1)
+    # ax.grid(lw=1)
+    ax.grid(visible=False)
     ax.set_xlim(-0.005, 1)
     ax.set_ylim(0, 1.005)
 
@@ -58,11 +59,17 @@ def ax_rocs(ax, curves, title=None, plot_ci=False):
         auc = skl_metrics.auc(roc.fpr_vals, roc.mean_tpr_vals)
         aucs[label] = {"score": auc, "ci-hi": roc.high_az_val, "ci-lo": roc.low_az_val}
 
+        legend_label = (
+            f"{label}: AUC = {auc:.3f} ({roc.low_az_val:.3f} - {roc.high_az_val:.3f})"
+        )
+        if catinfo is not None:
+            legend_label = f"{label} ({catinfo.loc[label, 'num_mal']} mal, {catinfo.loc[label, 'num'] - catinfo.loc[label, 'num_mal']} ben): \nAUC = {auc:.3f} ({roc.low_az_val:.3f} - {roc.high_az_val:.3f})"
+
         ax.plot(
             roc.fpr_vals,
             roc.mean_tpr_vals,
             color=color_palette[i],
-            label=f"{label}: AUC = {auc:.3f} ({roc.low_az_val:.3f} - {roc.high_az_val:.3f})",
+            label=legend_label,
         )
         if plot_ci:
             ax.fill_between(
@@ -305,7 +312,9 @@ def perf_by_splits(
     return rocs, threshold_metrics
 
 
-def roc_by_category(df, cat, models=MODEL_TO_COL, min_mal=2):
+def roc_by_category(
+    df, cat, models=MODEL_TO_COL, min_mal=2, dataset_name="NLST", figheight=5
+):
     groups = df.groupby(cat)
     df_catinfo, skips = info_by_splits(groups, min_mal)
 
@@ -323,26 +332,35 @@ def roc_by_category(df, cat, models=MODEL_TO_COL, min_mal=2):
     sigtest_on_plot = (len(df_catinfo) - len(skips)) == 2
 
     if len(models) <= 5:
-        fig, ax = plt.subplots(1, len(models), figsize=(6 * len(models) - 0.5, 6))
+        fig, ax = plt.subplots(
+            1, len(models), figsize=(figheight * len(models) - 0.5, figheight)
+        )
     else:
         lm = len(models)
         if lm % 2 == 1:
             lm += 1
         fig, ax = plt.subplots(
-            2, lm // 2, figsize=(6 * (lm // 2) - 0.5, 6 * 2), squeeze=False
+            2,
+            lm // 2,
+            figsize=(figheight * (lm // 2) - 0.5, figheight * 2),
+            squeeze=False,
         )
         ax = ax.flatten()
         # ax = ax[0] + ax[1]
 
     aucs = {}
-    fig.suptitle(f"Model ROC Curves Split By {cat}")
+    fig.suptitle(f"{dataset_name} (n={len(df)}) Model ROC Curves Split By {cat}")
     for i, m in enumerate(models):
-        title_str = m
+        title_str = f"{m} on {dataset_name} (n={len(df)}) \nROC by {cat}"
         if sigtest_on_plot:
             z_show, p_show = z[m].iloc[0, 1], p[m].iloc[0, 1]
-            title_str = f"{m}\n(z={z_show:.6f}, p={p_show:.6f})"
+            title_str = f"{m} on {dataset_name} (n={len(df)}) \nROC by {cat} (z={z_show:.2f}, p={p_show:.3f})"
+            if p_show < 0.001:
+                title_str = f"{m} on {dataset_name} (n={len(df)}) \nROC by {cat} (z={z_show:.2f}, p<0.001)"
 
-        aucs[m] = ax_rocs(ax[i], rocs[m], title=title_str)
+        aucs[m] = ax_rocs(
+            ax[i], rocs[m], title=title_str, catinfo=df_catinfo, plot_ci=True
+        )
 
     plt.tight_layout()
     plt.show()
