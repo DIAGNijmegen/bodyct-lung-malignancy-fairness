@@ -63,7 +63,8 @@ def ax_rocs(ax, curves, title=None, plot_ci=False, catinfo=None):
             f"{label}: AUC = {auc:.3f} ({roc.low_az_val:.3f} - {roc.high_az_val:.3f})"
         )
         if catinfo is not None:
-            legend_label = f"{label} ({catinfo.loc[label, 'num_mal']} mal, {catinfo.loc[label, 'num'] - catinfo.loc[label, 'num_mal']} ben): \nAUC = {auc:.3f} ({roc.low_az_val:.3f} - {roc.high_az_val:.3f})"
+            # legend_label = f"{label} ({catinfo.loc[label, 'num_mal']} mal, {catinfo.loc[label, 'num'] - catinfo.loc[label, 'num_mal']} ben): \nAUC = {auc:.3f} ({roc.low_az_val:.3f} - {roc.high_az_val:.3f})"
+            legend_label = f"{label}: AUC = {auc:.3f}   \n(95% CI: {roc.low_az_val:.3f} - {roc.high_az_val:.3f})"
 
         ax.plot(
             roc.fpr_vals,
@@ -84,7 +85,7 @@ def ax_rocs(ax, curves, title=None, plot_ci=False, catinfo=None):
         ax.set_title(title, fontsize=14)
 
     leg = ax.legend(loc="lower right", fontsize=12)
-    return pd.DataFrame(aucs)
+    return pd.DataFrame(aucs).T
 
 
 def ax_prcs(ax, curves, title=None, plot_ci=False):
