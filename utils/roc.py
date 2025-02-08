@@ -1,0 +1,366 @@
+import pandas as pd
+import os
+import numpy as np
+
+import seaborn as sns
+from evalutils.roc import get_bootstrapped_roc_ci_curves
+import matplotlib.pyplot as plt
+import scipy.stats
+from IPython.display import display, Markdown
+
+import sklearn.metrics as skl_metrics
+import warnings
+import data
+from info import MODEL_TO_COL
+
+## Plot settings (adapted from Kiran and Thijmen's repos)
+sns.set_style("white")
+sns.set_theme(
+    "talk",
+    "whitegrid",
+    "dark",
+    rc={"lines.linewidth": 2, "grid.linestyle": "--"},
+)
+color_palette = sns.color_palette("colorblind")
+
+
+## Return BootstrappedROCCICurves (evalutils object) for one model on one group.
+def calc_roc(df, pred_col, true_col="label", ci_to_use=0.95, num_bootstraps=100):
+    y_true = df[true_col].values
+    y_pred = df[pred_col].values
+
+    roc = get_bootstrapped_roc_ci_curves(
+        y_pred, y_true, num_bootstraps=num_bootstraps, ci_to_use=ci_to_use
+    )
+
+    auc = skl_metrics.auc(roc.fpr_vals, roc.mean_tpr_vals)
+    auc_info = {"score": auc, "ci-hi": roc.high_az_val, "ci-lo": roc.low_az_val}
+    return roc, auc_info
+
+
+## Check if the label has all true or all false.
+## If this is the case, then the ROC will not compute (and useless to do so).
+def check_if_roc_ok(df, true_col="label", min_mal=1):
+    total = len(df[true_col])
+    mal_count = len(df.query(f"{true_col} == 1")[true_col])
+    if mal_count == total:
+        return False
+    if mal_count < min_mal:
+        return False
+    return True
+
+
+## Hanley-McNeil (1982) significance test for comparing two independent AUCs
+## From http://www.med.mcgill.ca/epidemiology/hanley/software/Hanley_McNeil_Radiology_82.pdf
+def roc_hm_error(auc, n_mal, n_ben):
+    # print("auc:", auc)
+    q1 = auc / (2 - auc)
+    q2 = (2 * auc * auc) / (1 + auc)
+    # print("q1:", q1, "q2:", q2)
+
+    se = np.sqrt(
+        (auc * (1 - auc) - (n_mal - 1) * (q1 - auc**2) + (n_ben - 1) * (q2 - auc**2))
+        / (n_mal * n_ben)
+    )
+    return se
+
+
+## Hanley-McNeil (1982) significance test for comparing AUCs of the SAME treatment between INDEPENDENT subgroups.
+## See roc_hm_error for calculating the standard error.
+## From http://www.med.mcgill.ca/epidemiology/hanley/software/Hanley_McNeil_Radiology_82.pdf
+def roc_hm_pairwise_sigtest(aucs):
+    z = {g: {g: 0 for g in aucs} for g in aucs}
+    p = {g: {g: 1 for g in aucs} for g in aucs}
+    for group1 in aucs:
+        for group2 in aucs:
+            if group1 != group2:
+                auc1 = aucs[group1]["score"]
+                auc2 = aucs[group2]["score"]
+                se1 = aucs[group1]["error"]
+                se2 = aucs[group2]["error"]
+
+                auc_diff = auc1 - auc2
+                # print("aucdiff:", auc_diff)
+                se_diff = np.sqrt(se1**2 + se2**2)
+                # print("sediff:", se_diff)
+
+                z[group1][group2] = auc_diff / se_diff
+                # print("z:", z)
+
+                p[group1][group2] = (
+                    scipy.stats.norm.sf(abs(z[group1][group2])) * 2
+                )  ## two-tailed p-value (Normal distribution)
+                # print("p:", p)
+
+    return pd.DataFrame(z), pd.DataFrame(p)
+
+
+## ROC test for different subgroups for a single model.
+def calc_rocs_subgroups(
+    df,
+    cat,
+    pred_col,
+    include_all=False,
+    true_col="label",
+    ci_to_use=0.95,
+    num_bootstraps=100,
+):
+    rocs, aucs = {}, {}
+    ## If we want to include the overall result for comparison.
+    if include_all:
+        rocs["ALL"], aucs["ALL"] = calc_roc(
+            df,
+            pred_col,
+            true_col=true_col,
+            ci_to_use=ci_to_use,
+            num_bootstraps=num_bootstraps,
+        )
+
+    ## Get ROC and AUC for subgroups.
+    subgroups = df.groupby(cat)
+    for subg, dfg in subgroups:
+        is_roc_ok = check_if_roc_ok(dfg)
+        if not is_roc_ok:
+            continue
+
+        rocs[subg], aucs[subg] = calc_roc(
+            dfg,
+            pred_col,
+            true_col=true_col,
+            ci_to_use=ci_to_use,
+            num_bootstraps=num_bootstraps,
+        )
+
+        ## Calculate Hanley-McNeil standard errors.
+        n_mal = len(dfg.query(f"{true_col} == 1"))
+        n_ben = len(dfg.query(f"{true_col} == 0"))
+        aucs[subg]["error"] = roc_hm_error(aucs[subg]["score"], n_mal, n_ben)
+
+    ## Perform Hanley-McNeil significance test (pairwise between subgroups).
+    z, p = roc_hm_pairwise_sigtest(aucs)
+
+    aucs = pd.DataFrame(aucs).T
+    return rocs, aucs, z, p
+
+
+## Calculate ROCs for different models (no subgroups).
+## Future: could add DeLong test over here.
+## Note: models should be dictionary of format {'label': 'model_column"}
+def calc_rocs_models(
+    df, models=MODEL_TO_COL, true_col="label", ci_to_use=0.95, num_bootstraps=100
+):
+    rocs, aucs = {}, {}
+    for m in models:
+        rocs[m], aucs[m] = calc_roc(
+            df,
+            models[m],
+            true_col=true_col,
+            ci_to_use=ci_to_use,
+            num_bootstraps=num_bootstraps,
+        )
+
+    return rocs, aucs
+
+
+## Calculate ROCs for models for subgroups.
+def calc_rocs_subgroups_models(
+    df,
+    cat,
+    models=MODEL_TO_COL,
+    include_all=False,
+    true_col="label",
+    ci_to_use=0.95,
+    num_bootstraps=100,
+):
+    rocs, aucs, zs, ps = {}, {}, {}, {}
+    for m in models:
+        rocs[m], aucs[m], zs[m], ps[m] = calc_rocs_subgroups(
+            df,
+            cat,
+            models[m],
+            include_all=include_all,
+            true_col=true_col,
+            ci_to_use=ci_to_use,
+            num_bootstraps=num_bootstraps,
+        )
+
+    return rocs, aucs, zs, ps
+
+
+def binary_group_roc_table(aucs, p, subgroups):
+    assert len(subgroups) == 2
+    tablerow = {}
+    for m in aucs:
+        tablerow[m] = {"p": p[m].loc[subgroups[0], subgroups[1]]}
+
+        for i in range(2):
+            g = subgroups[i]
+            tablerow[m][f"Group_{i+1}"] = g
+            tablerow[m][f"AUC_{i+1}"] = aucs[m].loc[g, "score"]
+            tablerow[m][f"AUC-CI-lo_{i+1}"] = aucs[m].loc[g, "ci-lo"]
+            tablerow[m][f"AUC-CI-hi_{i+1}"] = aucs[m].loc[g, "ci-hi"]
+
+    return pd.DataFrame(tablerow).T
+
+
+## General plotting function for multiple ROC curves. Need to make figure separately.
+def ax_rocs(ax, rocs, title=None, plot_ci=True, catinfo=None):
+    ax.plot([0.0, 1.0], [0.0, 1.0], "--", color="k", alpha=0.5)
+    ax.set_xlabel("False Positive Rate", fontsize=14)
+    ax.set_ylabel("True Positive Rate", fontsize=14)
+    ax.set_xticks(
+        np.arange(0, 1.1, 0.1), np.around(np.arange(0, 1.1, 0.1), 1), fontsize=12
+    )  # X axis ticks in steps of 0.1
+    ax.set_yticks(
+        np.arange(0, 1.1, 0.1), np.around(np.arange(0, 1.1, 0.1), 1), fontsize=12
+    )  # Y axis ticks in steps of 0.1
+    # ax.grid(lw=1)
+    ax.grid(visible=False)
+    ax.set_xlim(-0.005, 1)
+    ax.set_ylim(0, 1.005)
+
+    for i, label in enumerate(rocs):
+        roc = rocs[label]
+        auc = skl_metrics.auc(roc.fpr_vals, roc.mean_tpr_vals)
+        legend_label = f"{label}: AUC = {auc:.3f}   \n(95% CI: {roc.low_az_val:.3f} - {roc.high_az_val:.3f})"
+        if catinfo is not None:
+            legend_label = f"{label} ({catinfo.loc[label, 'num_mal']} mal, {catinfo.loc[label, 'num'] - catinfo.loc[label, 'num_mal']} ben): \nAUC = {auc:.3f} ({roc.low_az_val:.3f} - {roc.high_az_val:.3f})"
+
+        ax.plot(
+            roc.fpr_vals,
+            roc.mean_tpr_vals,
+            color=color_palette[i],
+            label=legend_label,
+        )
+        if plot_ci:
+            ax.fill_between(
+                roc.fpr_vals,
+                roc.low_tpr_vals,
+                roc.high_tpr_vals,
+                color=color_palette[i],
+                alpha=0.1,
+            )
+
+    if title:
+        ax.set_title(title, fontsize=14)
+
+    leg = ax.legend(loc="lower right", fontsize=12)
+    return
+
+
+## Plot ROCs between models.
+def plot_rocs_models(
+    df,
+    models=MODEL_TO_COL,
+    rocs=None,
+    aucs=None,
+    dataset_name="NLST",
+    title=None,
+    imgpath=None,
+    plot_ci=False,
+    figsize=(6, 6),
+    true_col="label",
+    ci_to_use=0.95,
+    num_bootstraps=100,
+):
+    if rocs is None:
+        rocs, aucs = calc_rocs_models(df, models, true_col, ci_to_use, num_bootstraps)
+    if title is None:
+        title = f"{dataset_name} (n={len(df)}) ROC Curves Across Models"
+
+    fig, ax = plt.subplots(1, 1, figsize=figsize)
+    ax_rocs(ax=ax, curves=rocs, title=title, plot_ci=plot_ci)
+
+    if imgpath is not None:
+        plt.savefig(imgpath, dpi=600)
+
+    plt.show()
+    return rocs, aucs
+
+
+def plot_rocs_subgroups(
+    df,
+    cat,
+    models=MODEL_TO_COL,
+    roc=None,
+    auc=None,
+    z=None,
+    p=None,
+    two_subgroups=False,
+    dataset_name="NLST Scans",
+    figheight=5,
+    true_col="label",
+    ci_to_use=0.95,
+    num_bootstraps=100,
+    imgpath=None,
+):
+    catinfo = data.catinfo(df, cat)
+    display(catinfo)
+
+    if (roc is None) or (auc is None) or (z is None) or (p is None):
+        roc, auc, z, p = calc_rocs_subgroups_models(
+            df,
+            cat,
+            models,
+            true_col,
+            ci_to_use,
+            num_bootstraps,
+            include_all=False,
+        )
+
+    if len(first_roc) < 2:
+        print("Less than 2 valid groups. SKIP")
+        return roc, auc, z, p
+
+    top2_groups = None
+    if two_subgroups == True:
+        top2_groups = catinfo.sort_values(by="mal", ascending=False).index.values[0:2]
+        new_roc = {m: {g: roc[g] for g in top2_groups} for m in models}
+        roc = new_roc
+
+    first_roc = roc[list(roc.keys())[0]]
+    if len(first_roc) == 2:
+        top2_groups = list(first_roc.keys())
+        two_subgroups = True
+
+    if len(models) <= 4:
+        fig, ax = plt.subplots(
+            1, len(models), figsize=(figheight * len(models) - 0.5, figheight)
+        )
+    else:
+        lm = len(models)
+        if lm % 2 == 1:
+            lm += 1
+        fig, ax = plt.subplots(
+            2,
+            lm // 2,
+            figsize=(figheight * (lm // 2) - 0.5, figheight * 2),
+            squeeze=False,
+        )
+        ax = ax.flatten()
+
+    fig.suptitle(f"{dataset_name} (n={len(df)}) Model ROC Curves Split By {cat}")
+
+    for i, m in enumerate(models):
+        title_str = f"{m} on {dataset_name} (n={len(df)}) \nROC by {cat}"
+
+        if two_subgroups:
+            z_show = z[m].loc[top2_groups[0], top2_groups[1]]
+            p_show = p[m].loc[top2_groups[0], top2_groups[1]]
+
+            title_str += f" (z={z_show:.2f}, p={p_show:.3f})"
+            if p_show < 0.001:
+                title_str += f" (z={z_show:.2f}, p<0.001)"
+
+        ax_rocs(ax[i], roc[m], title=title_str, catinfo=catinfo, plot_ci=True)
+
+    if imgpath is not None:
+        plt.savefig(imgpath, dpi=600)
+
+    plt.tight_layout()
+    plt.show()
+
+    if two_subgroups:
+        display(binary_group_roc_table(auc, p, top2_groups))
+
+    return roc, auc, z, p
