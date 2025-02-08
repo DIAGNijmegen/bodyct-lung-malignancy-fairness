@@ -1,0 +1,341 @@
+import pandas as pd
+import os
+import numpy as np
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+import scipy.stats
+
+import sklearn.metrics as skl_metrics
+from sklearn.utils import resample
+import warnings
+from IPython.display import display, Markdown
+
+from .info import *
+from .data import catinfo
+
+
+def confmat(df, threshold=ILST_THRESHOLD, pred_col="DL", true_col="label"):
+    y_true = df[true_col].to_numpy()
+    y_pred = (df[pred_col] > threshold).astype(int).to_numpy()
+    tn, fp, fn, tp = skl_metrics.confusion_matrix(y_true, y_pred, labels=[0, 1]).ravel()
+    return tp, tn, fp, fn
+
+
+def threshold_stats(df, threshold=ILST_THRESHOLD, pred_col="DL", true_col="label"):
+    tp, tn, fp, fn = confmat(df, threshold, pred_col, true_col)
+    metrics = {}
+    metrics["num"] = tp + fp + fn + tn
+    metrics["mal"] = tp + fn
+    metrics["ben"] = fp + tn
+    metrics["tp"] = tp
+    metrics["fp"] = fp
+    metrics["tn"] = tn
+    metrics["fn"] = fn
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+
+        metrics["tpr"] = tp / (tp + fn)  ## Recall, sensitivity, hit rate
+        metrics["fpr"] = fp / (fp + tn)  ## Overdiagnosis
+        metrics["fnr"] = fn / (tp + fn)  ## Underdiagnosis
+        metrics["tnr"] = tn / (tn + fp)  ## Specificity
+        metrics["ppv"] = tp / (tp + fp)  ## Precision: positive predictive value
+        metrics["npv"] = tn / (tn + fn)  ## negative predictive value
+        metrics["fdr"] = fp / (fp + tp)  ## False discovery rate
+        metrics["for"] = fn / (fn + tn)  ## False omission rate
+        metrics["acc"] = (tp + tn) / (tp + fp + fn + tn)  ## Accuracy
+        metrics["j"] = (
+            metrics["tpr"] - metrics["fpr"]
+        )  ## Youden's J statistic (seen in some papers)
+        metrics["f1"] = (2 * tp) / (2 * tp + fp + fn)  ## f1 Score
+        metrics["mcc"] = np.sqrt(  ## Matthews Correlation Coefficient
+            metrics["tpr"] * metrics["tnr"] * metrics["ppv"] * metrics["npv"]
+        ) - np.sqrt(metrics["fpr"] * metrics["fnr"] * metrics["for"] * metrics["fdr"])
+
+    return metrics
+
+
+def perfs_by_threshold_models(df, models=MODEL_TO_COL, precision=3):
+    threshold_perfs = {}
+    threshold_cands = np.arange(0, 1, 10 ** (-1 * precision))
+
+    for m in models:
+        stats = {}
+        for t in threshold_cands:
+            stats[np.around(t, precision)] = threshold_stats(
+                df, threshold=t, pred_col=models[m], true_col="label"
+            )
+
+        statdf = pd.DataFrame(stats).T
+        statdf["Sensitivity"] = statdf["tpr"]
+        statdf["Specificity"] = statdf["tnr"]
+        statdf["Youden J"] = statdf["j"]
+
+        threshold_perfs[m] = statdf
+
+    return threshold_perfs
+
+
+def threshold_policies_models(
+    perfs=None,
+    policies=THRESHOLD_POLICIES,
+    brock=True,
+):
+    policy_thresholds = {}
+    for col, val in policies:
+        other_col = "Specificity" if col == "Sensitivity" else "Sensitivity"
+        policy_thresholds[f"{col}={val}"] = {}
+
+        for m in perfs:
+            df = perfs[m]
+            df[f"abs_diff"] = abs(df[col] - val)
+            df = df.sort_values(by=["abs_diff", other_col], ascending=[True, False])
+            df = df.drop(columns=["abs_diff"])
+            policy_thresholds[f"{col}={val}"][m] = list(df.index.values)[0]
+
+    policy_threshold_df = pd.DataFrame(policy_thresholds)
+    if brock:
+        policy_threshold_df["Brock"] = [ILST_THRESHOLD] * len(policy_threshold_df)
+
+    return policy_threshold_df
+
+
+def get_threshold_policies(
+    df, models=MODEL_TO_COL, policies=THRESHOLD_POLICIES, brock=True, precision=3
+):
+    perfs = perfs_by_threshold_models(df, models, precision)
+    policies = threshold_policies_models(perfs, policies, brock)
+    return policies
+
+
+def threshold_stats_models(df, policies, models=MODEL_TO_COL, true_col="label"):
+    dfs_by_policy = []
+
+    for p in list(policies.columns):
+        metrics_by_model = {}
+        for m in list(policies.index.values):
+            threshold = policies.loc[m, p]
+            metrics_by_model[m] = threshold_stats(
+                df, threshold, pred_col=models[m], true_col=true_col
+            )
+
+        dfm = pd.DataFrame(metrics_by_model).T
+        dfm["model"] = list(policies.index.values)
+        dfm["policy"] = [p] * len(dfm)
+        dfm["threshold"] = [threshold] * len(dfm)
+        dfs_by_policy.append(dfm)
+
+    mega_stats_df = pd.concat(dfs_by_policy, axis=0, ignore_index=True)
+    return mega_stats_df
+
+
+## Threshold stats for: multiple subgroups, multiple models, multiple threshold policies.
+def calc_threshold_stats_subgroups(
+    df,
+    cat,
+    policies,
+    models=MODEL_TO_COL,
+    include_all=False,
+    true_col="label",
+    csvpath=None,
+    bootstrap_ci=True,
+    ci_to_use=0.95,
+    num_bootstraps=100,
+    bootstrap_sample_size=None,
+):
+    stat_dfs = []
+    ## If we want to include the overall result for comparison.
+    if include_all:
+        stats = threshold_stats_models(df, policies, models=models, true_col=true_col)
+        stats["group"] = ["ALL"] * len(stats)
+        stat_dfs.append(stats)
+
+    ## Get threshold statistics for subgroups.
+    subgroups = df.groupby(cat, observed=True)
+    for subg, dfg in subgroups:
+        stats = threshold_stats_models(dfg, policies, models=models, true_col=true_col)
+        stats["group"] = [subg] * len(stats)
+        stat_dfs.append(stats)
+
+    allstats = pd.concat(stat_dfs, axis=0, ignore_index=True)
+
+    if bootstrap_ci:
+        df0 = df.dropna(axis=0, subset=[cat])[list(models.values()) + ["label", cat]]
+        all_bootstraps = []
+        for it in range(num_bootstraps):
+            bootstrap_df = resample(
+                df0,
+                replace=True,
+                n_samples=bootstrap_sample_size,
+                stratify=df0[cat],
+                random_state=None,
+            )
+            bootstrap_stats = calc_threshold_stats_subgroups(
+                bootstrap_df,
+                cat,
+                policies,
+                models,
+                include_all,
+                true_col,
+                csvpath=None,
+                bootstrap_ci=False,  #### MUST BE FALSE TO STOP INFINITE RECURSION
+            )
+            bootstrap_stats["iter"] = [it] * len(bootstrap_stats)
+            all_bootstraps.append(bootstrap_stats)
+
+        df_all_bootstraps = pd.concat(all_bootstraps, axis=0, ignore_index=False)
+        aggperfs = df_all_bootstraps.groupby(level=0)
+        ci_lo = aggperfs.quantile((1 - ci_to_use) / 2, numeric_only=True)
+        ci_hi = aggperfs.quantile(ci_to_use + ((1 - ci_to_use) / 2), numeric_only=True)
+        ci_df = pd.merge(
+            ci_lo, ci_hi, left_index=True, right_index=True, suffixes=("_lo", "_hi")
+        )
+
+        allstats = pd.merge(
+            allstats, ci_df, left_index=True, right_index=True, suffixes=("", "")
+        )
+
+    if csvpath:
+        allstats.to_csv(csvpath, index=False)
+
+    return allstats
+
+
+def plot_threshold_stats_subgroups(
+    df,
+    cat,
+    policies,
+    stats=None,
+    models=MODEL_TO_COL,
+    plot_metrics=["fpr", "fnr"],
+    show_all=False,
+    diff=True,
+    min_mal=10,
+    dataset_name="NLST",
+    imgpath=None,
+    include_all=False,
+    true_col="label",
+    csvpath=None,
+    bootstrap_ci=True,
+    ci_to_use=0.95,
+    num_bootstraps=100,
+    bootstrap_sample_size=None,
+):
+    if diff:
+        show_all = False
+    if show_all:
+        diff = False
+    if show_all or diff:
+        include_all = True
+
+    if stats is None:
+        stats = calc_threshold_stats_subgroups(
+            df,
+            cat,
+            policies,
+            models,
+            include_all,
+            true_col,
+            csvpath,
+            bootstrap_ci,
+            ci_to_use,
+            num_bootstraps,
+            bootstrap_sample_size,
+        )
+
+    df_catinfo = catinfo(df, cat)
+    display(df_catinfo)
+
+    subgroups = []
+    for val, row in df_catinfo.iterrows():
+        if row["mal"] >= min_mal:
+            subgroups.append(val)
+
+    if len(subgroups) < 2:
+        "Not enough malignant samples from multiple groups. SKIP"
+        return stats
+
+    if show_all:
+        subgroups.insert(0, "ALL")
+
+    figheight = 1 + len(policies.columns) * 5
+    figwidth = (
+        (len(models) * 0.7 + 0.5)
+        * (len(subgroups) + (1 if show_all else 0))
+        * len(plot_metrics)
+    )
+    fig, ax = plt.subplots(
+        len(policies.columns),
+        len(plot_metrics),
+        figsize=(figwidth, figheight),
+        squeeze=False,
+        sharex=False,
+        sharey=True,
+    )
+
+    color_palette = sns.color_palette("colorblind", len(models))
+    for j, p in enumerate(list(policies.columns)):
+        for i, s in enumerate(plot_metrics):
+            x = np.arange(len(subgroups))  # the label locations
+            width = 0.12  # the width of the bars
+            multiplier = 0
+
+            for k, m in enumerate(models):
+                modelstats = stats.query(f'(policy == "{p}") & (model == "{m}")')
+                scores, ci_lo, ci_hi, labels = [], [], [], []
+
+                for g in subgroups:
+                    subgroup_stats = modelstats[modelstats["group"] == g].iloc[0]
+
+                    if diff:
+                        allgroup_stats = modelstats[modelstats["group"] == "ALL"]
+                        scores.append(subgroup_stats[s] - allgroup_stats.iloc[0][s])
+                    else:
+                        scores.append(subgroup_stats[s])
+
+                    if bootstrap_ci:
+                        ci_lo.append(subgroup_stats[s] - subgroup_stats[f"{s}_lo"])
+                        ci_hi.append(subgroup_stats[f"{s}_hi"] - subgroup_stats[s])
+                    else:
+                        ci_lo.append(None)
+                        ci_hi.append(None)
+
+                    labels.append(
+                        f"{g}\n({subgroup_stats['mal']} mal, {subgroup_stats['ben']} ben)"
+                    )
+
+                offset = width * multiplier
+                rects = ax[j][i].bar(
+                    x + offset,
+                    scores,
+                    width,
+                    label=m,
+                    yerr=[ci_lo, ci_hi],
+                    color=color_palette[k],
+                )
+                ax[j][i].bar_label(rects, padding=3, fmt="%.2f", fontsize="x-small")
+                multiplier += 1
+
+            # Add some text for labels, title and custom x-axis tick labels, etc.
+            ax[j][i].set_ylabel(s)
+            ax[j][i].set_title(f"{dataset_name} (n={len(df)}) {s} by {cat} ({p})")
+            ax[j][i].set_xticks(x + width + 0.2, labels)
+            # ax[j][i].set_xticks(x + width, category)
+            # ax[j][i].legend(loc='upper left', bbox_to_anchor=(1, 1))
+
+            if diff:
+                ax[j][i].set_ylim(-0.5, 0.5)
+            else:
+                ax[j][i].set_ylim(0, 1)
+
+    handles, labels = ax[0][0].get_legend_handles_labels()
+    fig.suptitle(" \n ")
+    fig.legend(handles, labels, loc="upper center", ncol=1 + (len(handles) // 2))
+
+    plt.tight_layout()
+    if imgpath is not None:
+        plt.savefig(imgpath, dpi=600)
+    plt.show()
+
+    return stats
