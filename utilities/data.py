@@ -6,6 +6,7 @@ import seaborn as sns
 from evalutils.roc import get_bootstrapped_roc_ci_curves
 import matplotlib.pyplot as plt
 import scipy.stats
+from IPython.display import display, Markdown
 
 import sklearn.metrics as skl_metrics
 import warnings
@@ -111,3 +112,65 @@ def corrmat(df, rows, cols, method="kendall", vmin=-1, vmax=1, cmap="RdYlGn"):
     plt.show()
 
     return corrmat
+
+
+def cat_dist_df(c="Gender", dfsets={}):
+    dfdict = {}
+    for m in dfsets:
+        dfdict[f"{m}_freq"] = (
+            dfsets[m][c].value_counts(normalize=False, dropna=False).astype(int)
+        )
+        dfdict[f"{m}_norm"] = 100 * dfsets[m][c].value_counts(
+            normalize=True, dropna=False
+        ).round(6)
+
+    for i, m1 in enumerate(dfsets):
+        for j, m2 in enumerate(dfsets):
+            if j > i:
+                dfdict[f"diff_{m1}_{m2}"] = (
+                    dfdict[f"{m1}_norm"] - dfdict[f"{m2}_norm"]
+                ).round(4)
+
+    df = pd.DataFrame(dfdict).drop_duplicates()
+    return df
+
+
+def num_dist_df(c="Gender", dfsets={}):
+    dfdict = {}
+    for m in dfsets:
+        dfdict[f"{m}"] = dfsets[m][c].describe(percentiles=[0.5]).round(4)
+
+    for i, m1 in enumerate(dfsets):
+        for j, m2 in enumerate(dfsets):
+            if j > i:
+                dfdict[f"diff_{m1}_{m2}"] = dfdict[f"{m1}"] - dfdict[f"{m2}"]
+
+    df = pd.DataFrame(dfdict).drop_duplicates()
+    df.drop(index=["count", "max", "min", "std"], inplace=True)
+    return df
+
+
+def combine_col_dfs(cols={}, df_func=cat_dist_df, dfsets={}, dispdf=False):
+    splitdfs = []
+    for cat in cols:
+        if dispdf:
+            display(Markdown(f"### {cat}"))
+
+        for c in cols[cat]:
+            df = df_func(c, dfsets)
+            if dispdf:
+                display(df)
+
+            df["category"] = [cat] * len(df)
+            df["attribute"] = [c] * len(df)
+            df["value"] = df.index.values
+
+            dfcols = df.columns.tolist()
+            dfcols = dfcols[-3:] + dfcols[:-3]
+            df = df[dfcols]
+            df.reset_index(inplace=True, drop=True)
+            df.sort_values(by="value", ascending=True, inplace=True)
+
+            splitdfs.append(df)
+
+    return pd.concat(splitdfs, axis=0, ignore_index=True)
