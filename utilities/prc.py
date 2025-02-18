@@ -28,6 +28,7 @@ def calc_prc(df, pred_col, true_col="label"):
     precision, recall, thresholds = skl_metrics.precision_recall_curve(y_true, y_pred)
     prc = {"precision": precision, "recall": recall, "thresholds": thresholds}
     auc = skl_metrics.auc(prc["recall"], prc["precision"])
+    # avp = skl_metrics.average_precision_score(y_true, y_pred)
     return prc, auc
 
 
@@ -127,8 +128,10 @@ def binary_group_prc_table(aucs, p, subgroups):
 
 
 ## General plotting function for multiple prc curves. Need to make figure separately.
-def ax_prcs(ax, prcs, title=None, catinfo=None):
-    ax.plot([0.0, 1.0], [0.5, 0.5], "--", color="k", alpha=0.5)
+def ax_prcs(ax, prcs, title=None, catinfo=None, prevalence=0.1):
+    if catinfo is None:
+        ax.plot([0.0, 1.0], [prevalence, prevalence], "--", color="k", alpha=0.5)
+
     ax.set_xlabel("Recall", fontsize=14)
     ax.set_ylabel("Precision", fontsize=14)
     ax.set_xticks(
@@ -145,6 +148,7 @@ def ax_prcs(ax, prcs, title=None, catinfo=None):
     for i, label in enumerate(prcs):
         prc = prcs[label]
         auc = skl_metrics.auc(prc["recall"], prc["precision"])
+
         legend_label = f"{label}: AUC = {auc:.3f}"
         if catinfo is not None:
             legend_label = f"{label} ({catinfo.loc[label, 'mal']} mal, {catinfo.loc[label, 'ben']} ben): \nAUC = {auc:.3f}"
@@ -156,10 +160,22 @@ def ax_prcs(ax, prcs, title=None, catinfo=None):
             label=legend_label,
         )
 
+        if catinfo is not None:
+            ax.plot(
+                [0.0, 1.0],
+                [
+                    catinfo.loc[label, "pct_mal"] / 100,
+                    catinfo.loc[label, "pct_mal"] / 100,
+                ],
+                "--",
+                color=color_palette[i],
+                alpha=0.5,
+            )
+
     if title:
         ax.set_title(title, fontsize=14)
 
-    leg = ax.legend(loc="lower right", fontsize=12)
+    leg = ax.legend(loc="lower left", fontsize=12)
     return
 
 
@@ -181,7 +197,8 @@ def plot_prcs_models(
         title = f"{dataset_name} (n={len(df)}) Precision-Recall Curves Across Models"
 
     fig, ax = plt.subplots(1, 1, figsize=figsize)
-    ax_prcs(ax=ax, prcs=prcs, title=title)
+    prevalence = len(df.query(f"{true_col} == 1")) / len(df)
+    ax_prcs(ax=ax, prcs=prcs, title=title, prevalence=prevalence)
 
     if imgpath is not None:
         plt.savefig(imgpath, dpi=600)
@@ -234,7 +251,9 @@ def plot_prcs_subgroups(
         )
         ax = ax.flatten()
 
-    fig.suptitle(f"{dataset_name} (n={len(df)}) Model prc Curves Split By {cat}")
+    fig.suptitle(
+        f"{dataset_name} (n={len(df)}) Model Precision-Recall Curves Split By {cat}"
+    )
 
     for i, m in enumerate(models):
         title_str = f"{m} on {dataset_name} (n={len(df)}) \nprc by {cat}"
