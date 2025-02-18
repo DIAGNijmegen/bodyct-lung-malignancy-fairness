@@ -51,6 +51,7 @@ def prep_nlst_preds(df, scanlevel=True, sybil=True, tijmen=True):
             "CoordX",
             "CoordY",
             "CoordZ",
+            "NoduleType",
             "NoduleID",
             "AnnotationID",
             "Mean_Entropy_Kiran",
@@ -92,11 +93,17 @@ def prep_nlst_preds(df, scanlevel=True, sybil=True, tijmen=True):
 
         df = df.drop_duplicates(["SeriesInstanceUID"], ignore_index=True)
 
+    ## TODO: add logic for filtering model columns and demo columns
+
     if tijmen:
         df = df[(~df["Thijmen_mean"].isna())]
     if sybil:
         df = df[(~df["sybil_year1"].isna())]
     return df
+
+
+def bin_numerical_columns(democols):
+    pass
 
 
 def bmi_calc(height, weight):

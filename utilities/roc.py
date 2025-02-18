@@ -185,11 +185,13 @@ def calc_rocs_subgroups_models(
     return rocs, aucs, zs, ps
 
 
-def binary_group_roc_table(aucs, p, subgroups):
+def binary_group_roc_table(aucs, p, subgroups, z=None):
     assert len(subgroups) == 2
     tablerow = {}
     for m in aucs:
         tablerow[m] = {"p": p[m].loc[subgroups[0], subgroups[1]]}
+        if z is not None:
+            tablerow[m]["z"] = z[m].loc[subgroups[0], subgroups[1]]
 
         for i in range(2):
             g = subgroups[i]
@@ -316,11 +318,16 @@ def plot_rocs_subgroups(
         top2_groups = df_catinfo.sort_values(by="mal", ascending=False).index.values[
             0:2
         ]
-        new_roc = {m: {g: roc[g] for g in top2_groups} for m in models}
+        new_roc = {m: {g: roc[m][g] for g in top2_groups} for m in models}
         roc = new_roc
 
     if len(first_roc) == 2:
-        top2_groups = list(first_roc.keys())
+        # top2_groups = list(first_roc.keys())
+        top2_groups = list(
+            df_catinfo[df_catinfo.index.isin(list(first_roc.keys()))]
+            .sort_values(by="mal", ascending=False)
+            .index.values
+        )
         two_subgroups = True
 
     if len(models) <= 4:
@@ -364,3 +371,72 @@ def plot_rocs_subgroups(
         display(binary_group_roc_table(auc, p, top2_groups))
 
     return roc, auc, z, p
+
+
+def all_results_subgroups_models(
+    df,
+    democols,  ### Shape: {'category1': ['attribute1', 'attribute2', ...], ...}
+    models=MODEL_TO_COL,
+    dataset_name="NLST Scans",
+    true_col="label",
+    ci_to_use=0.95,
+    num_bootstraps=100,
+    plot=False,
+    csvpath=None,
+):
+    category_perfs = []
+    for category in democols:
+        attribute_perfs = []
+        if plot:
+            display(Markdown(f"## {category}"))
+
+        for attribute in democols[category]:
+            df_catinfo = catinfo(df, attribute)
+            top2 = df_catinfo.sort_values(by="mal", ascending=False).index.values[0:2]
+
+            analysis_func = plot_rocs_subgroups if plot else calc_rocs_subgroups_models
+            if plot:
+                display(Markdown(f"### {attribute}"))
+
+            _, auc, z, p = analysis_func(
+                df,
+                attribute,
+                models=models,
+                true_col=true_col,
+                ci_to_use=ci_to_use,
+                num_bootstraps=num_bootstraps,
+            )
+
+            if auc is None:
+                continue
+
+            first_auc = auc[list(auc.keys())[0]]
+            if len(first_auc) < 2:
+                continue
+
+            bintable = binary_group_roc_table(auc, p, top2, z)
+
+            for i, g in enumerate(top2):
+                bintable[f"Group_{i+1}_mal"] = df_catinfo.loc[g, "mal"]
+                bintable[f"Group_{i+1}_ben"] = df_catinfo.loc[g, "ben"]
+                bintable[f"Group_{i+1}_pct"] = df_catinfo.loc[g, "pct"]
+                bintable[f"Group_{i+1}_pct_mal"] = df_catinfo.loc[g, "pct_mal"]
+
+            bintable["col"] = [MODEL_TO_COL[m] for m in list(bintable.index.values)]
+            bintable["attribute"] = [attribute] * len(bintable)
+            attribute_perfs.append(bintable)
+
+        if len(attribute_perfs) > 0:
+            df_attribute_perfs = pd.concat(attribute_perfs, axis=0)
+            df_attribute_perfs["category"] = [category] * len(df_attribute_perfs)
+            category_perfs.append(df_attribute_perfs)
+
+    if len(category_perfs) > 0:
+        all_perfs = pd.concat(category_perfs, axis=0)
+
+        if csvpath is not None:
+            all_perfs.to_csv(csvpath)
+
+        return all_perfs
+    else:
+        return None
