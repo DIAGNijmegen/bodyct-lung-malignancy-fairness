@@ -1,6 +1,7 @@
 import pandas as pd
 import os
 import numpy as np
+import copy
 
 import seaborn as sns
 from evalutils.roc import get_bootstrapped_roc_ci_curves
@@ -18,11 +19,11 @@ MODEL_TO_COL = {
     "de Haas Global (hidden nodule)": "Thijmen_global_hidden_cal",
     "de Haas Global (shown nodule)": "Thijmen_global_show_cal",
     "Sybil year 1": "sybil_year1",
-    "Sybil year 2": "sybil_year2",
-    "Sybil year 3": "sybil_year3",
-    "Sybil year 4": "sybil_year4",
-    "Sybil year 5": "sybil_year5",
-    "Sybil year 6": "sybil_year6",
+    # "Sybil year 2": "sybil_year2",
+    # "Sybil year 3": "sybil_year3",
+    # "Sybil year 4": "sybil_year4",
+    # "Sybil year 5": "sybil_year5",
+    # "Sybil year 6": "sybil_year6",
     "PanCan2b": "PanCan2b",
 }
 
@@ -45,7 +46,7 @@ def catinfo(df, cat, include_all=False):
     return df_catinfo
 
 
-def prep_nlst_preds(df, scanlevel=True, sybil=True, tijmen=True):
+def prep_nlst_preds(df, democols=None, scanlevel=True, sybil=True, tijmen=False):
     if scanlevel:
         nodule_drop_cols = [
             "CoordX",
@@ -58,7 +59,7 @@ def prep_nlst_preds(df, scanlevel=True, sybil=True, tijmen=True):
         ]
         nodule_agg_cols = [
             "Spiculation",
-            "Diameter [mm]",
+            "Diameter_mm",
             "NoduleCounts",
             "NoduleInUpperLung",
             "Solid",  # Nodule Types
@@ -94,16 +95,61 @@ def prep_nlst_preds(df, scanlevel=True, sybil=True, tijmen=True):
         df = df.drop_duplicates(["SeriesInstanceUID"], ignore_index=True)
 
     ## TODO: add logic for filtering model columns and demo columns
+    if democols:
+        if scanlevel:
+            democols["num"].pop("nodule")
+
+    models = copy.deepcopy(MODEL_TO_COL)
+
+    if not sybil:
+        for i in range(6):
+            if f"Sybil year {i+1}" in models.keys():
+                models.pop(f"Sybil year {i+1}")
+
+    if not tijmen:
+        models.pop("de Haas Combined")
 
     if tijmen:
         df = df[(~df["Thijmen_mean"].isna())]
     if sybil:
         df = df[(~df["sybil_year1"].isna())]
-    return df
+
+    df, democols = bin_numerical_columns(df, democols)
+    return df, democols, models
 
 
-def bin_numerical_columns(democols):
-    pass
+### CREATE BINARY bins of numerical columns (for our analysis).
+def bin_numerical_columns(df, democols):
+    if democols is None:
+        return df, democols
+
+    ### Cutoff values - incldue in the left interval.
+    cutoff_values = {
+        "height": 68,
+        "weight": 180,
+        "smokeage": 16,
+        "smokeday": 25,
+        "smokeyr": 40,
+        "pkyr": 55,
+        "NoduleCounts": 1,  ### NLST
+        "NoduleCountPerScan": 1,  ### DLCST
+        "Diameter_mm": 7,
+        "Age": 61,
+    }
+
+    numerical_cols = democols["num"]
+    for category in numerical_cols:
+        for attribute in numerical_cols[category]:
+            if attribute not in cutoff_values.keys():
+                continue
+
+            query_string = f"{attribute} > {cutoff_values[attribute]}"
+            df[query_string] = df.eval(query_string)
+            democols["cat"][category].append(query_string)
+
+        democols["cat"][category] = sorted(list(set(democols["cat"][category])))
+
+    return df, democols
 
 
 def bmi_calc(height, weight):
