@@ -38,7 +38,7 @@ def calc_roc(df, pred_col, true_col="label", ci_to_use=0.95, num_bootstraps=100)
 
 ## Check if the label has all true or all false.
 ## If this is the case, then the ROC will not compute (and useless to do so).
-def check_if_roc_ok(df, true_col="label", min_mal=1):
+def check_if_roc_ok(df, true_col="label", min_mal=2):
     total = len(df[true_col])
     mal_count = len(df.query(f"{true_col} == 1")[true_col])
     if mal_count == total:
@@ -115,7 +115,7 @@ def calc_rocs_subgroups(
         )
 
     ## Get ROC and AUC for subgroups.
-    subgroups = df.groupby(cat)
+    subgroups = df.groupby(cat, observed=False)
     for subg, dfg in subgroups:
         is_roc_ok = check_if_roc_ok(dfg)
         if not is_roc_ok:

@@ -77,6 +77,90 @@ def perfs_by_threshold_models(df, models=MODEL_TO_COL, precision=3):
     return threshold_perfs
 
 
+## Plot function for multiple threshold performance curves for a single model. Need to make figure separately.
+def ax_threshold_perfs(
+    ax,
+    perfs,
+    metrics=["Sensitivity", "Specificity"],
+    policy_df=None,
+    model="Venkadesh",
+    title=None,
+):
+    ax.set_xlabel("Threshold", fontsize=14)
+    ax.set_ylabel("Rate", fontsize=14)
+    ax.set_xticks(
+        np.arange(0, 1.1, 0.1), np.around(np.arange(0, 1.1, 0.1), 1), fontsize=12
+    )  # X axis ticks in steps of 0.1
+    ax.set_yticks(
+        np.arange(0, 1.1, 0.1), np.around(np.arange(0, 1.1, 0.1), 1), fontsize=12
+    )  # Y axis ticks in steps of 0.1
+    ax.grid(lw=1)
+    ax.grid(visible=False)
+    ax.set_xlim(-0.005, 1)
+    ax.set_ylim(0, 1.005)
+
+    perfs = perfs.sort_index(ascending=True)
+
+    thresholds = list(perfs.index.values)
+    for i, metric in enumerate(metrics):
+        perf = perfs[metric]
+        ax.plot(
+            thresholds,
+            perf,
+            color=color_palette[i],
+            label=metric,
+        )
+
+    for j, p in enumerate(list(policy_df.columns)):
+        ax.axvline(
+            policy_df.loc[model, p],
+            linestyle="--",
+            color=color_palette[j],
+            label=f"{p} (threshold = {policy_df.loc[model, p]})",
+        )
+
+    if title:
+        ax.set_title(title, fontsize=14)
+
+    leg = ax.legend(loc="center right", fontsize=12)
+    return
+
+
+## Plot ROCs between models.
+def plot_threshold_perfs_models(
+    df,
+    models=MODEL_TO_COL,
+    perfs=None,
+    policy_df=None,
+    metrics=["Sensitivity", "Specificity"],
+    precision=3,
+    dataset_name="NLST",
+    imgpath=None,
+):
+    if perfs is None:
+        perfs = perfs_by_threshold_models(df, models=models, precision=precision)
+
+    fig, ax = plt.subplots(len(models), 1, figsize=(8, 6 * len(models)))
+    fig.suptitle(" ")
+
+    for i, m in enumerate(models):
+        subtitle = f"{m} Performance by Threshold ({dataset_name}, n={len(df)})"
+        ax_threshold_perfs(
+            ax=ax[i],
+            perfs=perfs[m],
+            metrics=metrics,
+            policy_df=policy_df,
+            title=subtitle,
+        )
+
+    if imgpath is not None:
+        plt.savefig(imgpath, dpi=600)
+
+    plt.tight_layout()
+    plt.show()
+    return perfs, policy_df
+
+
 def threshold_policies_models(
     perfs=None,
     policies=THRESHOLD_POLICIES,
@@ -88,10 +172,17 @@ def threshold_policies_models(
         policy_thresholds[f"{col}={val}"] = {}
 
         for m in perfs:
-            df = perfs[m]
-            df[f"abs_diff"] = abs(df[col] - val)
-            df = df.sort_values(by=["abs_diff", other_col], ascending=[True, False])
-            df = df.drop(columns=["abs_diff"])
+            df0 = perfs[m]
+            df0["diff"] = df0[col] - val
+
+            if val == 1.0:
+                df = df0.query(f'diff == {max(df0["diff"])}')
+            else:
+                df = df0.query(f"diff >= 0")
+
+            df = df.sort_values(by=["diff", other_col], ascending=[True, False])
+            df0 = df0.drop(columns=["diff"])
+            perfs[m] = df0
             policy_thresholds[f"{col}={val}"][m] = list(df.index.values)[0]
 
     policy_threshold_df = pd.DataFrame(policy_thresholds)
@@ -106,7 +197,7 @@ def get_threshold_policies(
 ):
     perfs = perfs_by_threshold_models(df, models, precision)
     policies = threshold_policies_models(perfs, policies, brock)
-    return policies
+    return policies, perfs
 
 
 def threshold_stats_models(df, policies, models=MODEL_TO_COL, true_col="label"):

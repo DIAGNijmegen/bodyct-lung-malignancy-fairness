@@ -11,6 +11,16 @@ from sklearn.utils import resample
 import warnings
 from IPython.display import display, Markdown
 
+## Plot settings (adapted from Kiran and Thijmen's repos)
+sns.set_style("white")
+sns.set_theme(
+    "talk",
+    "whitegrid",
+    "dark",
+    rc={"lines.linewidth": 2, "grid.linestyle": "--"},
+)
+color_palette = sns.color_palette("colorblind", 30)
+
 MODEL_TO_COL = {
     "Venkadesh": "DL_cal",
     "de Haas Combined": "Thijmen_mean_cal",
