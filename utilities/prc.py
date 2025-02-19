@@ -28,7 +28,8 @@ def calc_prc(df, pred_col, true_col="label"):
     precision, recall, thresholds = skl_metrics.precision_recall_curve(y_true, y_pred)
     prc = {"precision": precision, "recall": recall, "thresholds": thresholds}
     auc = skl_metrics.auc(prc["recall"], prc["precision"])
-    # avp = skl_metrics.average_precision_score(y_true, y_pred)
+    avp = skl_metrics.average_precision_score(y_true, y_pred)
+    print(f"AUC: {auc}, average precision: {avp}")
     return prc, auc
 
 

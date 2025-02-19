@@ -19,7 +19,7 @@ sns.set_theme(
     "dark",
     rc={"lines.linewidth": 2, "grid.linestyle": "--"},
 )
-color_palette = sns.color_palette("colorblind")
+color_palette = sns.color_palette("colorblind", 30)
 
 
 ## Return BootstrappedROCCICurves (evalutils object) for one model on one group.
@@ -422,7 +422,7 @@ def all_results_subgroups_models(
                 bintable[f"Group_{i+1}_pct"] = df_catinfo.loc[g, "pct"]
                 bintable[f"Group_{i+1}_pct_mal"] = df_catinfo.loc[g, "pct_mal"]
 
-            bintable["col"] = [MODEL_TO_COL[m] for m in list(bintable.index.values)]
+            bintable["col"] = [models[m] for m in list(bintable.index.values)]
             bintable["attribute"] = [attribute] * len(bintable)
             attribute_perfs.append(bintable)
 
