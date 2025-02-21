@@ -430,3 +430,78 @@ def plot_threshold_stats_subgroups(
     plt.show()
 
     return stats
+
+
+def all_results_subgroups_models(
+    df,
+    democols,  ### Shape: {'category1': ['attribute1', 'attribute2', ...], ...}
+    policies,
+    models=MODEL_TO_COL,
+    true_col="label",
+    metrics=["fpr", "fnr"],
+    ci_to_use=0.95,
+    num_bootstraps=100,
+    plot=False,
+    csvpath=None,
+):
+    category_perfs = []
+    for category in democols:
+        attribute_perfs = []
+        if plot:
+            display(Markdown(f"## {category}"))
+
+        for attribute in democols[category]:
+            df_catinfo = catinfo(df, attribute)
+            top2 = df_catinfo.sort_values(by="mal", ascending=False).index.values[0:2]
+
+            analysis_func = (
+                plot_threshold_stats_subgroups
+                if plot
+                else calc_threshold_stats_subgroups
+            )
+            if plot:
+                display(Markdown(f"### {attribute}"))
+
+            stats = analysis_func(
+                df,
+                attribute,
+                policies,
+                models,
+                include_all=False,
+                true_col=true_col,
+                csvpath=None,
+                bootstrap_ci=True,
+                ci_to_use=ci_to_use,
+                num_bootstraps=num_bootstraps,
+                bootstrap_sample_size=None,
+            )
+
+            if stats is None:
+                continue
+
+            bintable = binary_group_roc_table(auc, p, top2, z)
+
+            for i, g in enumerate(top2):
+                bintable[f"Group_{i+1}_mal"] = df_catinfo.loc[g, "mal"]
+                bintable[f"Group_{i+1}_ben"] = df_catinfo.loc[g, "ben"]
+                bintable[f"Group_{i+1}_pct"] = df_catinfo.loc[g, "pct"]
+                bintable[f"Group_{i+1}_pct_mal"] = df_catinfo.loc[g, "pct_mal"]
+
+            bintable["col"] = [models[m] for m in list(bintable.index.values)]
+            bintable["attribute"] = [attribute] * len(bintable)
+            attribute_perfs.append(bintable)
+
+        if len(attribute_perfs) > 0:
+            df_attribute_perfs = pd.concat(attribute_perfs, axis=0)
+            df_attribute_perfs["category"] = [category] * len(df_attribute_perfs)
+            category_perfs.append(df_attribute_perfs)
+
+    if len(category_perfs) > 0:
+        all_perfs = pd.concat(category_perfs, axis=0)
+
+        if csvpath is not None:
+            all_perfs.to_csv(csvpath)
+
+        return all_perfs
+    else:
+        return None

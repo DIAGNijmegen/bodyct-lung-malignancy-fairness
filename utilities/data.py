@@ -96,6 +96,7 @@ def prep_nlst_preds(df, democols=None, scanlevel=True, sybil=True, tijmen=False)
 
     ## TODO: add logic for filtering model columns and demo columns
     if democols:
+        democols = copy.deepcopy(democols)
         if scanlevel:
             democols["num"].pop("nodule")
 

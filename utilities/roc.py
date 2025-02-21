@@ -377,7 +377,6 @@ def all_results_subgroups_models(
     df,
     democols,  ### Shape: {'category1': ['attribute1', 'attribute2', ...], ...}
     models=MODEL_TO_COL,
-    dataset_name="NLST Scans",
     true_col="label",
     ci_to_use=0.95,
     num_bootstraps=100,
