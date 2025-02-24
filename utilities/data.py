@@ -10,6 +10,7 @@ import scipy.stats
 from IPython.display import display, Markdown
 import statsmodels.api as sm
 import statsmodels.stats.proportion as smp
+import statsmodels.stats.weightstats as smw
 
 
 import sklearn.metrics as skl_metrics
@@ -211,7 +212,7 @@ def diffs_category_prevalence(c="Gender", dfsets={}, include_stat=False):
                     stats.append(s)
                     pvals.append(p)
 
-                df[f"score_{m1}_{m2}"] = stats
+                df[f"stat_{m1}_{m2}"] = stats
                 df[f"p_{m1}_{m2}"] = pvals
 
     return df
@@ -229,6 +230,22 @@ def diffs_numerical_means(c="Gender", dfsets={}, include_stat=False):
 
     df = pd.DataFrame(dfdict).drop_duplicates()
     df.drop(index=["count", "max", "min", "std"], inplace=True)
+
+    if include_stat:
+        for i, m1 in enumerate(dfsets):
+            for j, m2 in enumerate(dfsets):
+                if j <= i:
+                    continue
+                stats, pvals = [], []
+                for val, row in df.iterrows():
+                    x1, x2 = dfsets[m1][c].dropna(), dfsets[m2][c].dropna()
+                    t, p, dof = smw.ttest_ind(x1, x2)
+                    stats.append(t)
+                    pvals.append(p)
+
+                df[f"stat_{m1}_{m2}"] = stats
+                df[f"p_{m1}_{m2}"] = pvals
+
     return df
 
 
