@@ -439,3 +439,80 @@ def all_results_subgroups_models(
         return all_perfs
     else:
         return None
+
+
+def save_results_isolate_confounders(
+    df,
+    demographic,  ## This is the one to get performance on.
+    democols,  ## What to isolate for.
+    models=MODEL_TO_COL,
+    true_col="label",
+    ci_to_use=0.95,
+    num_bootstraps=100,
+    plot=False,
+    csvpath=None,
+):
+    category_perfs = []
+    for category in democols:
+        attribute_perfs = []
+        if plot:
+            display(Markdown(f"## {category}"))
+
+        for attribute in democols[category]:
+            splits = df.groupby(attribute)
+
+            for sval, sdf in splits:
+                df_catinfo = catinfo(sdf, demographic)
+                top2 = df_catinfo.sort_values(by="mal", ascending=False).index.values[
+                    0:2
+                ]
+
+                analysis_func = (
+                    plot_rocs_subgroups if plot else calc_rocs_subgroups_models
+                )
+                if plot:
+                    display(Markdown(f"### {demographic}: {attribute} == {sval}"))
+
+                _, auc, z, p = analysis_func(
+                    sdf,
+                    demographic,
+                    models=models,
+                    true_col=true_col,
+                    ci_to_use=ci_to_use,
+                    num_bootstraps=num_bootstraps,
+                )
+
+                if auc is None:
+                    continue
+
+                first_auc = auc[list(auc.keys())[0]]
+                if len(first_auc) < 2:
+                    continue
+
+                bintable = binary_group_roc_table(auc, p, top2, z)
+
+                for i, g in enumerate(top2):
+                    bintable[f"Group_{i+1}_mal"] = df_catinfo.loc[g, "mal"]
+                    bintable[f"Group_{i+1}_ben"] = df_catinfo.loc[g, "ben"]
+                    bintable[f"Group_{i+1}_pct"] = df_catinfo.loc[g, "pct"]
+                    bintable[f"Group_{i+1}_pct_mal"] = df_catinfo.loc[g, "pct_mal"]
+
+                bintable["col"] = [models[m] for m in list(bintable.index.values)]
+                bintable["filter_by"] = [attribute] * len(bintable)
+                bintable["filter_val"] = [sval] * len(bintable)
+                attribute_perfs.append(bintable)
+
+        if len(attribute_perfs) > 0:
+            df_attribute_perfs = pd.concat(attribute_perfs, axis=0)
+            df_attribute_perfs["category"] = [category] * len(df_attribute_perfs)
+            category_perfs.append(df_attribute_perfs)
+
+    if len(category_perfs) > 0:
+        all_perfs = pd.concat(category_perfs, axis=0)
+
+        if csvpath is not None:
+            all_perfs.to_csv(csvpath)
+
+        return all_perfs
+    else:
+        return None
