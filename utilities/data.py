@@ -8,6 +8,9 @@ from evalutils.roc import get_bootstrapped_roc_ci_curves
 import matplotlib.pyplot as plt
 import scipy.stats
 from IPython.display import display, Markdown
+import statsmodels.api as sm
+import statsmodels.stats.proportion as smp
+
 
 import sklearn.metrics as skl_metrics
 import warnings
@@ -46,7 +49,9 @@ def catinfo(df, cat, include_all=False):
     return df_catinfo
 
 
-def prep_nlst_preds(df, democols=None, scanlevel=True, sybil=True, tijmen=False):
+def prep_nlst_preds(
+    df, democols=None, scanlevel=True, sybil=True, tijmen=False, bin_num=True
+):
     if scanlevel:
         nodule_drop_cols = [
             "CoordX",
@@ -115,7 +120,9 @@ def prep_nlst_preds(df, democols=None, scanlevel=True, sybil=True, tijmen=False)
     if sybil:
         df = df[(~df["sybil_year1"].isna())]
 
-    df, democols = bin_numerical_columns(df, democols)
+    if bin_num:
+        df, democols = bin_numerical_columns(df, democols)
+
     return df, democols, models
 
 
@@ -145,7 +152,7 @@ def bin_numerical_columns(df, democols):
                 continue
 
             query_string = f"{attribute} > {cutoff_values[attribute]}"
-            df[query_string] = df.eval(query_string)
+            df.loc[:, query_string] = df.eval(query_string)
             democols["cat"][category].append(query_string)
 
         democols["cat"][category] = sorted(list(set(democols["cat"][category])))
@@ -168,7 +175,9 @@ def corrmat(df, rows, cols, method="kendall", vmin=-1, vmax=1, cmap="RdYlGn"):
     return corrmat
 
 
-def cat_dist_df(c="Gender", dfsets={}):
+## Includes score test for proportions of disease prevalence.
+## Score test recommended by Tang et al. (2012): https://doi.org/10.1002/bimj.201100216
+def diffs_category_prevalence(c="Gender", dfsets={}, include_stat=False):
     dfdict = {}
     for m in dfsets:
         dfdict[f"{m}_freq"] = (
@@ -186,10 +195,29 @@ def cat_dist_df(c="Gender", dfsets={}):
                 ).round(4)
 
     df = pd.DataFrame(dfdict).drop_duplicates()
+
+    if include_stat:
+        for i, m1 in enumerate(dfsets):
+            for j, m2 in enumerate(dfsets):
+                if j <= i:
+                    continue
+                n1, n2 = len(dfsets[m1]), len(dfsets[m2])
+                stats, pvals = [], []
+                for val, row in df.iterrows():
+                    f1, f2 = row[f"{m1}_freq"], row[f"{m2}_freq"]
+                    s, p = smp.score_test_proportions_2indep(
+                        f1, n1, f2, n2, return_results=False
+                    )
+                    stats.append(s)
+                    pvals.append(p)
+
+                df[f"score_{m1}_{m2}"] = stats
+                df[f"p_{m1}_{m2}"] = pvals
+
     return df
 
 
-def num_dist_df(c="Gender", dfsets={}):
+def diffs_numerical_means(c="Gender", dfsets={}, include_stat=False):
     dfdict = {}
     for m in dfsets:
         dfdict[f"{m}"] = dfsets[m][c].describe(percentiles=[0.5]).round(4)
@@ -204,14 +232,20 @@ def num_dist_df(c="Gender", dfsets={}):
     return df
 
 
-def combine_col_dfs(cols={}, df_func=cat_dist_df, dfsets={}, dispdf=False):
+def combine_diff_dfs(
+    cols={},
+    df_func=diffs_category_prevalence,
+    dfsets={},
+    dispdf=False,
+    include_stat=False,  ## Not applicable for comparing datasets since they have overlap.
+):
     splitdfs = []
     for cat in cols:
         if dispdf:
             display(Markdown(f"### {cat}"))
 
         for c in cols[cat]:
-            df = df_func(c, dfsets)
+            df = df_func(c, dfsets, include_stat)
             if dispdf:
                 display(df)
 
@@ -228,3 +262,11 @@ def combine_col_dfs(cols={}, df_func=cat_dist_df, dfsets={}, dispdf=False):
             splitdfs.append(df)
 
     return pd.concat(splitdfs, axis=0, ignore_index=True)
+
+
+def demographics_across_datasets(dfsets, cols={}, dispdf=False, include_stat=False):
+    cat_df = combine_diff_dfs(
+        cols, dfsets, diffs_category_prevalence, dispdf, include_stat
+    )
+    num_df = combine_diff_dfs(cols, dfsets, diffs_numerical_means, dispdf, include_stat)
+    return cat_df, num_df
