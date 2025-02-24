@@ -205,8 +205,8 @@ def diffs_category_prevalence(c="Gender", dfsets={}, include_stat=False):
                 stats, pvals = [], []
                 for val, row in df.iterrows():
                     f1, f2 = row[f"{m1}_freq"], row[f"{m2}_freq"]
-                    s, p = smp.score_test_proportions_2indep(
-                        f1, n1, f2, n2, return_results=False
+                    s, p = smp.test_proportions_2indep(
+                        f1, n1, f2, n2, return_results=False, method="wald"
                     )
                     stats.append(s)
                     pvals.append(p)
