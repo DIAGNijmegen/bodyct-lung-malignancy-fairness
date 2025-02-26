@@ -278,7 +278,7 @@ def calc_threshold_stats_subgroups(
         df_all_bootstraps = pd.concat(all_bootstraps, axis=0, ignore_index=False)
         aggperfs = df_all_bootstraps.groupby(level=0)
         ci_lo = aggperfs.quantile((1 - ci_to_use) / 2, numeric_only=True)
-        ci_hi = aggperfs.quantile(ci_to_use + ((1 - ci_to_use) / 2), numeric_only=True)
+        ci_hi = aggperfs.quantile((1 + ci_to_use) / 2, numeric_only=True)
         ci_df = pd.merge(
             ci_lo, ci_hi, left_index=True, right_index=True, suffixes=("_lo", "_hi")
         )
@@ -377,6 +377,8 @@ def plot_threshold_stats_subgroups(
                 scores, ci_lo, ci_hi, labels = [], [], [], []
 
                 for g in subgroups:
+                    # print(g)
+                    # print(modelstats[modelstats["group"] == g])
                     subgroup_stats = modelstats[modelstats["group"] == g].iloc[0]
 
                     if diff:
@@ -416,9 +418,9 @@ def plot_threshold_stats_subgroups(
             # ax[j][i].legend(loc='upper left', bbox_to_anchor=(1, 1))
 
             if diff:
-                ax[j][i].set_ylim(-0.5, 0.5)
+                ax[j][i].set_ylim(-0.55, 0.55)
             else:
-                ax[j][i].set_ylim(0, 1)
+                ax[j][i].set_ylim(0, 1.1)
 
     handles, labels = ax[0][0].get_legend_handles_labels()
     fig.suptitle(" \n ")
@@ -438,93 +440,89 @@ def all_results_subgroups_models(
     policies,
     models=MODEL_TO_COL,
     true_col="label",
-    metrics=["fpr", "fnr"],
     ci_to_use=0.95,
     num_bootstraps=100,
     plot=False,
-    dirpath=None,
+    csvpath=None,
 ):
-    all_perfs_metric = {}
-    for met in metrics:
-        category_perfs = []
-        for category in democols:
-            attribute_perfs = []
+    category_perfs = []
+    for category in democols:
+        attribute_perfs = []
+        if plot:
+            display(Markdown(f"## {category}"))
+
+        for attribute in democols[category]:
+            df_catinfo = catinfo(df, attribute)
+            # top2 = df_catinfo.sort_values(by="mal", ascending=False).index.values[
+            #     0:2
+            # ]
+
             if plot:
-                display(Markdown(f"## {category}"))
+                display(Markdown(f"### {attribute}"))
 
-            for attribute in democols[category]:
-                df_catinfo = catinfo(df, attribute)
-                top2 = df_catinfo.sort_values(by="mal", ascending=False).index.values[
-                    0:2
-                ]
+            # print(f"{attribute}: top2 = {top2}")
 
-                if plot:
-                    display(Markdown(f"### {attribute}"))
+            analysis_func = (
+                plot_threshold_stats_subgroups
+                if plot
+                else calc_threshold_stats_subgroups
+            )
 
-                analysis_func = (
-                    plot_threshold_stats_subgroups
-                    if plot
-                    else calc_threshold_stats_subgroups
-                )
+            stats = analysis_func(
+                df,
+                attribute,
+                policies,
+                models,
+                include_all=True,
+                true_col=true_col,
+                csvpath=None,
+                bootstrap_ci=True,
+                ci_to_use=ci_to_use,
+                num_bootstraps=num_bootstraps,
+                bootstrap_sample_size=None,
+            )
 
-                stats = analysis_func(
-                    df,
-                    attribute,
-                    policies,
-                    models,
-                    include_all=False,
-                    true_col=true_col,
-                    csvpath=None,
-                    bootstrap_ci=True,
-                    ci_to_use=ci_to_use,
-                    num_bootstraps=num_bootstraps,
-                    bootstrap_sample_size=None,
-                )
+            # if stats is None or len(top2) < 2:
+            #     continue
 
-                if stats is None:
-                    continue
+            # filtered_stats = [
+            #     stats[stats["group"] == r][
+            #         ["model", "policy", "threshold", "group"]
+            #         + [met, f"{met}_lo", f"{met}_hi"]
+            #     ].sort_values(by="policy")
+            #     for r in top2
+            # ]
 
-                filtered_stats = [
-                    stats[stats["group"] == r][
-                        ["model", "policy", "threshold", "group"]
-                        + [met, f"{met}_lo", f"{met}_hi"]
-                    ].sort_values(by="policy")
-                    for r in top2
-                ]
+            # bintable = pd.merge(
+            #     filtered_stats[0],
+            #     filtered_stats[1],
+            #     on=["model", "policy", "threshold"],
+            #     left_index=False,
+            #     right_index=False,
+            #     suffixes=("_1", "_2"),
+            # )
 
-                bintable = pd.merge(
-                    filtered_stats[0],
-                    filtered_stats[1],
-                    on=["model", "policy", "threshold"],
-                    left_index=False,
-                    right_index=False,
-                    suffixes=("_1", "_2"),
-                )
+            # for i, g in enumerate(top2):
+            #     bintable[f"Group_{i+1}_mal"] = df_catinfo.loc[g, "mal"]
+            #     bintable[f"Group_{i+1}_ben"] = df_catinfo.loc[g, "ben"]
+            #     bintable[f"Group_{i+1}_pct"] = df_catinfo.loc[g, "pct"]
+            #     bintable[f"Group_{i+1}_pct_mal"] = df_catinfo.loc[g, "pct_mal"]
 
-                for i, g in enumerate(top2):
-                    bintable[f"Group_{i+1}_mal"] = df_catinfo.loc[g, "mal"]
-                    bintable[f"Group_{i+1}_ben"] = df_catinfo.loc[g, "ben"]
-                    bintable[f"Group_{i+1}_pct"] = df_catinfo.loc[g, "pct"]
-                    bintable[f"Group_{i+1}_pct_mal"] = df_catinfo.loc[g, "pct_mal"]
+            stats["col"] = [models[m] for m in stats["model"]]
+            stats["attribute"] = [attribute] * len(stats)
+            attribute_perfs.append(stats)
 
-                bintable["col"] = [models[m] for m in bintable["model"]]
-                bintable["attribute"] = [attribute] * len(bintable)
-                attribute_perfs.append(bintable)
+        if len(attribute_perfs) > 0:
+            df_attribute_perfs = pd.concat(attribute_perfs, axis=0)
+            df_attribute_perfs["category"] = [category] * len(df_attribute_perfs)
+            category_perfs.append(df_attribute_perfs)
 
-            if len(attribute_perfs) > 0:
-                df_attribute_perfs = pd.concat(attribute_perfs, axis=0)
-                df_attribute_perfs["category"] = [category] * len(df_attribute_perfs)
-                category_perfs.append(df_attribute_perfs)
+    if len(category_perfs) > 0:
+        all_perfs = pd.concat(category_perfs, axis=0)
 
-        if len(category_perfs) > 0:
-            all_perfs = pd.concat(category_perfs, axis=0)
+        if csvpath is not None:
+            all_perfs.to_csv(f"{csvpath}.csv")
+    else:
+        all_perfs = None
 
-            if dirpath is not None:
-                os.makedirs(dirpath, exist_ok=True)
-                all_perfs.to_csv(f"{dirpath}/")
-
-            all_perfs_metric[met] = all_perfs
-        else:
-            all_perfs_metric[met] = None
-
-    return all_perfs_metric
+    return all_perfs
