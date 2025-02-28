@@ -297,7 +297,6 @@ def plot_threshold_stats_subgroups(
     df,
     cat,
     policies,
-    stats=None,
     models=MODEL_TO_COL,
     plot_metrics=["fpr", "fnr"],
     show_all=False,
@@ -312,7 +311,13 @@ def plot_threshold_stats_subgroups(
     ci_to_use=0.95,
     num_bootstraps=100,
     bootstrap_sample_size=None,
+    stats=None,
 ):
+    df_catinfo = catinfo(df, cat)
+    if len(df_catinfo) == 0:
+        return None
+    display(df_catinfo)
+
     if diff:
         show_all = False
     if show_all:
@@ -334,9 +339,6 @@ def plot_threshold_stats_subgroups(
             num_bootstraps,
             bootstrap_sample_size,
         )
-
-    df_catinfo = catinfo(df, cat)
-    display(df_catinfo)
 
     subgroups = []
     for val, row in df_catinfo.iterrows():
@@ -452,15 +454,8 @@ def all_results_subgroups_models(
             display(Markdown(f"## {category}"))
 
         for attribute in democols[category]:
-            df_catinfo = catinfo(df, attribute)
-            # top2 = df_catinfo.sort_values(by="mal", ascending=False).index.values[
-            #     0:2
-            # ]
-
             if plot:
                 display(Markdown(f"### {attribute}"))
-
-            # print(f"{attribute}: top2 = {top2}")
 
             analysis_func = (
                 plot_threshold_stats_subgroups
@@ -472,7 +467,7 @@ def all_results_subgroups_models(
                 df,
                 attribute,
                 policies,
-                models,
+                models=models,
                 include_all=True,
                 true_col=true_col,
                 csvpath=None,
@@ -481,32 +476,6 @@ def all_results_subgroups_models(
                 num_bootstraps=num_bootstraps,
                 bootstrap_sample_size=None,
             )
-
-            # if stats is None or len(top2) < 2:
-            #     continue
-
-            # filtered_stats = [
-            #     stats[stats["group"] == r][
-            #         ["model", "policy", "threshold", "group"]
-            #         + [met, f"{met}_lo", f"{met}_hi"]
-            #     ].sort_values(by="policy")
-            #     for r in top2
-            # ]
-
-            # bintable = pd.merge(
-            #     filtered_stats[0],
-            #     filtered_stats[1],
-            #     on=["model", "policy", "threshold"],
-            #     left_index=False,
-            #     right_index=False,
-            #     suffixes=("_1", "_2"),
-            # )
-
-            # for i, g in enumerate(top2):
-            #     bintable[f"Group_{i+1}_mal"] = df_catinfo.loc[g, "mal"]
-            #     bintable[f"Group_{i+1}_ben"] = df_catinfo.loc[g, "ben"]
-            #     bintable[f"Group_{i+1}_pct"] = df_catinfo.loc[g, "pct"]
-            #     bintable[f"Group_{i+1}_pct_mal"] = df_catinfo.loc[g, "pct_mal"]
 
             stats["col"] = [models[m] for m in stats["model"]]
             stats["attribute"] = [attribute] * len(stats)
@@ -526,3 +495,72 @@ def all_results_subgroups_models(
         all_perfs = None
 
     return all_perfs
+
+
+def save_results_isolate_confounders(
+    df,
+    demographic,  ## This is the one to get performance on.
+    democols,  ## What to isolate for.
+    policies,
+    models=MODEL_TO_COL,
+    true_col="label",
+    ci_to_use=0.95,
+    num_bootstraps=100,
+    plot=False,
+    csvpath=None,
+):
+    category_perfs = []
+    for category in democols:
+        attribute_perfs = []
+        if plot:
+            display(Markdown(f"## {category}"))
+
+        for attribute in democols[category]:
+            splits = df.groupby(attribute)
+
+            for sval, sdf in splits:
+                if plot:
+                    display(Markdown(f"#### {demographic}: {attribute} = {sval}"))
+
+                analysis_func = (
+                    plot_threshold_stats_subgroups
+                    if plot
+                    else calc_threshold_stats_subgroups
+                )
+
+                stats = analysis_func(
+                    sdf,
+                    demographic,
+                    policies,
+                    models,
+                    include_all=True,
+                    true_col=true_col,
+                    csvpath=None,
+                    bootstrap_ci=True,
+                    ci_to_use=ci_to_use,
+                    num_bootstraps=num_bootstraps,
+                    bootstrap_sample_size=None,
+                )
+
+                if stats is None:
+                    continue
+
+                stats["col"] = [models[m] for m in stats["model"]]
+                stats["filter_by"] = [attribute] * len(stats)
+                stats["filter_val"] = [sval] * len(stats)
+                attribute_perfs.append(stats)
+
+        if len(attribute_perfs) > 0:
+            df_attribute_perfs = pd.concat(attribute_perfs, axis=0)
+            df_attribute_perfs["category"] = [category] * len(df_attribute_perfs)
+            category_perfs.append(df_attribute_perfs)
+
+    if len(category_perfs) > 0:
+        all_perfs = pd.concat(category_perfs, axis=0)
+
+        if csvpath is not None:
+            all_perfs.to_csv(csvpath)
+
+        return all_perfs
+    else:
+        return None
