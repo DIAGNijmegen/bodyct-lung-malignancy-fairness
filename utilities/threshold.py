@@ -369,18 +369,22 @@ def plot_threshold_stats_subgroups(
 
     color_palette = sns.color_palette("colorblind", len(models))
     for j, p in enumerate(list(policies.columns)):
+        # print(p)
         for i, s in enumerate(plot_metrics):
+            # print(s)
             x = np.arange(len(subgroups))  # the label locations
             width = 0.12  # the width of the bars
             multiplier = 0
 
             for k, m in enumerate(models):
+                # print(m, f'(policy == "{p}") & (model == "{m}")')
+                # display(stats)
                 modelstats = stats.query(f'(policy == "{p}") & (model == "{m}")')
                 scores, ci_lo, ci_hi, labels = [], [], [], []
 
                 for g in subgroups:
-                    # print(g)
-                    # print(modelstats[modelstats["group"] == g])
+                    print(g)
+                    print(modelstats[modelstats["group"] == g])
                     subgroup_stats = modelstats[modelstats["group"] == g].iloc[0]
 
                     if diff:
