@@ -5,7 +5,7 @@ import sys
 
 CHANSEY_ROOT = "/data/bodyct"
 EXPERIMENT_DIR = f"{CHANSEY_ROOT}/experiments/lung-malignancy-fairness-shaurya"
-NLST_PREDS = f"{EXPERIMENT_DIR}/nlst"  ## Comment out if not using Teams backup (aka Chansey is up :)
+NLST_PREDS = f"{EXPERIMENT_DIR}/nlst"
 MHADIR_PATH = f"{CHANSEY_ROOT}/experiments/0-nlst-mha"
 
 
