@@ -1,0 +1,3 @@
+pyxis: importing docker image: doduo.umcn.nl#uokbaseimage/diag:tf2.12-pt2.0-v1
+slurmstepd: error: *** JOB 183735 ON dlc-meowth CANCELLED AT 2025-03-04T12:53:52 ***
+slurmstepd: error: pyxis: child 580121 failed with error code: 1

@@ -25,31 +25,33 @@ def get_image_sizes_from_dataframe(df, directory):
         file_path = os.path.join(directory, f"{filename}.mha")
         try:
             size = get_image_size(file_path)
-            print(f"{i+1} / {len(df)}: {filename}.mha ... size = {size}", end="\r")
+            print(f"{i+1} / {len(df)}: {filename}.mha ... size = {size}")
             sizes.append(
                 (filename, size[0], size[1], size[2])
             )  # Include filename in the result
         except Exception as e:
-            print(f"{i+1} / {len(df)}: {filename}.mha ... ERROR = {e}", end="\r")
+            print(f"{i+1} / {len(df)}: {filename}.mha ... ERROR = {e}")
             sizes.append(
                 (filename, None, None, None)
             )  # If an error occurs, append None for all dimensions
 
     # Create a new dataframe with filename, x, y, z columns
     sizes_df = pd.DataFrame(
-        sizes, columns=["SeriesInstanceUID", "series_x", "series_y", "series_z"]
+        sizes, columns=["SeriesInstanceUID", "SeriesX", "SeriesY", "SeriesZ"]
     )
     return sizes_df
 
 
 if __name__ == "__main__":
+    df = pd.read_csv(f"{NLST_PREDS}/nlst_demov4_allmodels_cal.csv")
+    df = df[(~df["sybil_year1"].isna())].drop_duplicates(subset="SeriesInstanceUID")
+    print(f"{len(df)} series UIDs")
 
-    df = pd.read_csv(f"{NLST_PREDS}/nlst_demov4_allmodels_cal.csv").drop_duplicates(
-        subset="SeriesInstanceUID"
-    )
     # Get image sizes and append to the original DataFrame
     sizes_df = get_image_sizes_from_dataframe(df, MHADIR_PATH)
     sizes_df.to_csv(f"{EXPERIMENT_DIR}/nlst/nlst_demov4_scan_sizes.csv", index=False)
 
-    merged_df = pd.merge(df, sizes_df, on="filename", how="left")
-    sizes_df.to_csv(f"{EXPERIMENT_DIR}/nlst/nlst_demov4_allmodels_cal.csv", index=False)
+    # merged_df = pd.merge(
+    #     df, sizes_df, on="SeriesInstanceUID", how="left", validate="m:1"
+    # )
+    # sizes_df.to_csv(f"{EXPERIMENT_DIR}/nlst/nlst_demov4_allmodels_cal.csv", index=False)
