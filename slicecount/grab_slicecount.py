@@ -44,14 +44,10 @@ def get_image_sizes_from_dataframe(df, directory):
 
 if __name__ == "__main__":
     df = pd.read_csv(f"{NLST_PREDS}/nlst_demov4_allmodels_cal.csv")
-    df = df[(~df["sybil_year1"].isna())].drop_duplicates(subset="SeriesInstanceUID")
+    df = df.drop_duplicates(subset="SeriesInstanceUID")
+    # df = df[(~df["sybil_year1"].isna())]
     print(f"{len(df)} series UIDs")
 
     # Get image sizes and append to the original DataFrame
     sizes_df = get_image_sizes_from_dataframe(df, MHADIR_PATH)
-    sizes_df.to_csv(f"{EXPERIMENT_DIR}/nlst/nlst_demov4_scan_sizes.csv", index=False)
-
-    # merged_df = pd.merge(
-    #     df, sizes_df, on="SeriesInstanceUID", how="left", validate="m:1"
-    # )
-    # sizes_df.to_csv(f"{EXPERIMENT_DIR}/nlst/nlst_demov4_allmodels_cal.csv", index=False)
+    sizes_df.to_csv(f"{EXPERIMENT_DIR}/nlst/nlst_kiran_scan_sizes.csv", index=False)

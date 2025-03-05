@@ -383,8 +383,8 @@ def plot_threshold_stats_subgroups(
                 scores, ci_lo, ci_hi, labels = [], [], [], []
 
                 for g in subgroups:
-                    print(g)
-                    print(modelstats[modelstats["group"] == g])
+                    # print(g)
+                    # print(modelstats[modelstats["group"] == g])
                     subgroup_stats = modelstats[modelstats["group"] == g].iloc[0]
 
                     if diff:

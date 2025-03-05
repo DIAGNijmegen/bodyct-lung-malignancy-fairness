@@ -144,6 +144,7 @@ def bin_numerical_columns(df, democols):
         "NoduleCountPerScan": 1,  ### DLCST
         "Diameter_mm": 7,
         "Age": 61,
+        "SliceCount": 200,  ### Truncated by Sybil preprocessing
     }
 
     numerical_cols = democols["num"]
