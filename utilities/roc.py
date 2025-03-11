@@ -222,9 +222,9 @@ def ax_rocs(ax, rocs, title=None, plot_ci=True, catinfo=None):
     for i, label in enumerate(rocs):
         roc = rocs[label]
         auc = skl_metrics.auc(roc.fpr_vals, roc.mean_tpr_vals)
-        legend_label = f"{label}: AUC = {auc:.3f}   \n(95% CI: {roc.low_az_val:.3f} - {roc.high_az_val:.3f})"
+        legend_label = f"{label}: AUC = {auc:.2f} (95% CI: {roc.low_az_val:.2f}, {roc.high_az_val:.2f})"
         if catinfo is not None:
-            legend_label = f"{label} ({catinfo.loc[label, 'mal']} mal, {catinfo.loc[label, 'ben']} ben): \nAUC = {auc:.3f} ({roc.low_az_val:.3f} - {roc.high_az_val:.3f})"
+            legend_label = f"{label} ({catinfo.loc[label, 'mal']} mal, {catinfo.loc[label, 'ben']} ben): \nAUC = {auc:.2f} ({roc.low_az_val:.2f}, {roc.high_az_val:.2f})"
 
         ax.plot(
             roc.fpr_vals,
@@ -349,7 +349,7 @@ def plot_rocs_subgroups(
     fig.suptitle(f"{dataset_name} (n={len(df)}) Model ROC Curves Split By {cat}")
 
     for i, m in enumerate(models):
-        title_str = f"{m} on {dataset_name} (n={len(df)}) \nROC by {cat}"
+        title_str = f"{m} on {dataset_name} (n={len(df)}) \nSplit by {cat}"
 
         if two_subgroups:
             z_show = z[m].loc[top2_groups[0], top2_groups[1]]
@@ -360,7 +360,7 @@ def plot_rocs_subgroups(
             else:
                 title_str += f" (z={z_show:.2f}, p={p_show:.3f})"
 
-        ax_rocs(ax[i], roc[m], title=title_str, catinfo=df_catinfo, plot_ci=True)
+        ax_rocs(ax[i], roc[m], title=title_str, catinfo=None, plot_ci=True)
 
     plt.tight_layout()
     if imgpath is not None:
