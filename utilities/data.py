@@ -31,6 +31,181 @@ MODEL_TO_COL = {
     "PanCan2b": "PanCan2b",
 }
 
+binary_key = {1: True, 0: False}
+keys = {
+    "Gender": {1: "Male", 2: "Female"},
+    "race": {
+        1: "White",
+        2: "Black",
+        3: "Asian",
+        4: "American Indian or Alaskan Native",
+        5: "Native Hawaiian or Other Pacific Islander",
+        6: "More than one race",
+        # 7: 'Unknown',
+        # 95: 'Unknown',
+        # 96: 'Unknown',
+        # 98: 'Unknown',
+        # 99: 'Unknown'
+    },
+    "WhiteOrBlack": {
+        1: "White",
+        2: "Black",
+        # 7: 'Unknown',
+        # 95: 'Unknown',
+        # 96: 'Unknown',
+        # 98: 'Unknown',
+        # 99: 'Unknown'
+    },
+    "ethnic": {1: "Hispanic/Latino", 2: "Neither Hispanic nor Latino"},
+    "marital": {
+        1: "Never Married",
+        2: "Married",
+        3: "Widowed",
+        4: "Separated",
+        5: "Divorced",
+    },
+    "educat": {
+        1: "8th grade or less",
+        2: "9th-11th grade",
+        3: "High school graduate/GED",
+        4: "Post high school training, excluding college",
+        5: "Associate degree/ some college",
+        6: "Bachelors Degree",
+        7: "Graduate School",
+    },
+    "LC_stage": {
+        110: "IA",
+        120: "IB",
+        210: "IIA",
+        220: "IIB",
+        310: "IIIA",
+        320: "IIIB",
+        400: "IV",
+        888: "TNM not available",
+        900: "Occult Carcinoma",
+        994: "Carcinoid, cannot be assessed",
+        999: "Unknown, cannot be assessed",
+    },
+}
+
+rename_types = {
+    "demo": "Demographics",
+    "smoke": "Smoking",
+    "nodule": "Nodule",
+    "other": "Other",
+    "work": "Work History",
+    "disease": "Disease Diagnosis",
+    "canchist": "Previous Cancer Diagnosis",
+    "lungcanc": "Lung Cancer",
+    "scanner": "Scanner",
+}
+rename_cols = {
+    ### DLCST
+    "Sex": "Gender",
+    "NoduleCountPerScan": "Nodules Per Scan",
+    ### NLST
+    "BMI": "BMI",
+    "Age": "Age",
+    "height": "Height",
+    "weight": "Weight",
+    "smokeage": "Age at Smoking Onset",
+    "smokeday": "Cigarettes per Day (avg.)",
+    "smokeyr": "Total Years of Smoking",
+    "pkyr": "Pack-Years",
+    "CoordX": "Nodule X",
+    "CoordY": "Nodule Y",
+    "CoordZ": "Nodule Z",
+    "Mean_Entropy_Kiran": "Mean Entropy Score (Venkadesh)",
+    "NoduleCounts": "Nodules Per Scan",
+    "Diameter_mm": "Diameter (mm)",
+    "SliceCount": "Slices In Scan",
+    "Overweight": "BMI > 25",
+    "educat": "Education Status",
+    "Gender": "Gender",
+    "Married": "Married",
+    "HighSchoolPlus": "High School Education",
+    "NonHispanicWhite": "Non-Hispanic White",
+    "Unfinished_ed": "Unfinished Education Level",
+    "WhiteOrBlack": "White or Black",
+    "marital": "Marital Status",
+    "ethnic": "Ethnicity",
+    "race": "Race",
+    "smokelive": "Lived with Smoker",
+    "cigar": "Smoked Cigars",
+    "cigsmok": "Current Smoker",
+    "smokework": "Worked with Smoker",
+    "pipe": "Smoked Pipe",
+    "wrkbaki": "Baking",
+    "wrkfoun": "Foundry / Steel Milling",
+    "wrkchem": "Chemicals / Plastics Mfg.",
+    "wrkasbe": "Asbestos",
+    "wrkfire": "Firefighting",
+    "wrksand": "Sandblasting",
+    "wrkfarm": "Farming",
+    "wrkcoal": "Coal Mining",
+    "wrkpain": "Painting",
+    "wrkweld": "Welding",
+    "wrkflou": "Flour/Feed or Grain Milling",
+    "wrkbutc": "Butchering / Meat Packing",
+    "wrkhard": "Hard Rock Mining",
+    "wrkcott": "Cotton / Jute Processing",
+    "diagasbe": "Asbestosis",
+    "diagchas": "Childhood Asthma",
+    "diagpneu": "Pneumonia",
+    "diagstro": "Stroke",
+    "diagemph": "Emphysema",
+    "diagbron": "Bronchiectasis",
+    "diagsili": "Silicosis",
+    "diagsarc": "Sarcoidosis",
+    "diaghear": "Heart Disease / Attack",
+    "diagdiab": "Diabetes",
+    "diagadas": "Adult Asthma",
+    "diagcopd": "COPD",
+    "diagfibr": "Lung Fibrosis",
+    "diagtube": "Tuberculosis",
+    "diaghype": "Hypertension",
+    "diagchro": "Chronic Bronchitis",
+    "canckidn": "Kidney",
+    "cancphar": "Pharynx",
+    "canccolo": "Colorectal",
+    "cancoral": "Oral",
+    "cancpanc": "Prancreatic",
+    "canccerv": "Cervical",
+    "cancstom": "Stomach",
+    "cancthyr": "Thyroid",
+    "canctran": "Transitional Cell",
+    "cancnasa": "Nasal",
+    "canclary": "Larynx",
+    "cancbrea": "Breast",
+    "cancesop": "Esophageal",
+    "cancblad": "Bladder",
+    "canclung": "Lung",
+    "GroundGlassOpacity": "Ground-Glass Opacity",
+    "NoduleInUpperLung": "Nodule in Upper Lung",
+    "Perifissural": "Perfissural",
+    "NonSolid": "Non-Solid",
+    "Calcified": "Calcified",
+    "Spiculation": "Spiculated Nodule",
+    "PartSolid": "Part-Solid",
+    "Solid": "Solid",
+    "SemiSolid": "Semi-Solid",
+    "FamilyHistoryLungCa": "Family History of LC",
+    "PersonalCancerHist": "Previous Cancer Diagnosis",
+    "wrknomask": "Work Without Mask",
+    "Emphysema": "Emphysema in Scan",
+    "LC_stage": "LC Stage",
+    "Adenosquamous_carcinoma": "Adenosquamous Carcinoma",
+    "Small_cell_carcinoma": "Small Cell Carcinoma",
+    "Bronchiolo-alveolar_carcinoma": "Bronchiolo-Alveolar Carcinoma",
+    "Carcinoid_tumor": "Carcinoid Tumor",
+    "Adenocarcinoma": "Adenocarcinoma",
+    "Squamous_cell_carcinoma": "Squamous Cell Carcinoma",
+    "Unclassified_carcinoma": "Unclassified Carcinoma",
+    "Large_cell_carcinoma": "Large Cell Carcinoma",
+    "Manufacturer": "Manufacturer",
+    "ManufacturersModelName": "Model Name",
+}
+
 
 ## Get prevalence info for a category in the dataset.
 def catinfo(df, cat, include_all=False):
@@ -51,7 +226,13 @@ def catinfo(df, cat, include_all=False):
 
 
 def prep_nlst_preds(
-    df, democols=None, scanlevel=True, sybil=True, tijmen=False, bin_num=True
+    df,
+    democols=None,
+    scanlevel=True,
+    sybil=True,
+    tijmen=False,
+    bin_num=True,
+    pretty=False,
 ):
     if scanlevel:
         nodule_drop_cols = [
@@ -121,14 +302,17 @@ def prep_nlst_preds(
     if sybil:
         df = df[(~df["sybil_year1"].isna())]
 
+    if pretty:
+        df, democols = nlst_pretty_labels(df, democols)
+        display(df)
     if bin_num:
-        df, democols = bin_numerical_columns(df, democols)
+        df, democols = bin_numerical_columns(df, democols, pretty=pretty)
 
     return df, democols, models
 
 
 ### CREATE BINARY bins of numerical columns (for our analysis).
-def bin_numerical_columns(df, democols):
+def bin_numerical_columns(df, democols, pretty=False):
     if democols is None:
         return df, democols
 
@@ -147,6 +331,9 @@ def bin_numerical_columns(df, democols):
         "SliceCount": 200,  ### Truncated by Sybil preprocessing
     }
 
+    if pretty:
+        cutoff_values = {rename_cols[k]: v for k, v in cutoff_values.items()}
+
     numerical_cols = democols["num"]
     for category in numerical_cols:
         for attribute in numerical_cols[category]:
@@ -154,7 +341,8 @@ def bin_numerical_columns(df, democols):
                 continue
 
             query_string = f"{attribute} > {cutoff_values[attribute]}"
-            df.loc[:, query_string] = df.eval(query_string)
+            query_string_backticks = f"`{attribute}` > {cutoff_values[attribute]}"
+            df.loc[:, query_string] = df.eval(query_string_backticks)
             democols["cat"][category].append(query_string)
 
         democols["cat"][category] = sorted(list(set(democols["cat"][category])))
@@ -175,6 +363,29 @@ def corrmat(df, rows, cols, method="kendall", vmin=-1, vmax=1, cmap="RdYlGn"):
     plt.show()
 
     return corrmat
+
+
+def nlst_pretty_labels(df, nlst_democols):
+    pretty_cols = {}
+
+    for typ in nlst_democols:
+        if typ == "info":
+            continue
+        pretty_cols[typ] = {}
+        for cat in nlst_democols[typ]:
+            pretty_cols[typ][rename_types[cat]] = []
+            for att in nlst_democols[typ][cat]:
+                if att not in df.columns:
+                    continue
+                pretty_cols[typ][rename_types[cat]].append(rename_cols[att])
+
+                if att in keys:
+                    df[att] = df[att].replace(keys[att])
+                elif sorted(pd.unique(df[att])) == [0, 1]:
+                    df[att] = df[att].replace(binary_key)
+
+    df2 = df.rename(columns=rename_cols)
+    return df2, pretty_cols
 
 
 ## Includes score test for proportions of disease prevalence.
