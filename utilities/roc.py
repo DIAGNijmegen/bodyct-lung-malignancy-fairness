@@ -200,6 +200,8 @@ def binary_group_roc_table(aucs, p, subgroups, z=None):
             tablerow[m][f"AUC-CI-lo_{i+1}"] = aucs[m].loc[g, "ci-lo"]
             tablerow[m][f"AUC-CI-hi_{i+1}"] = aucs[m].loc[g, "ci-hi"]
 
+        tablerow[m]["AUC_diff"] = tablerow[m][f"AUC_2"] - tablerow[m][f"AUC_1"]
+
     return pd.DataFrame(tablerow).T
 
 
