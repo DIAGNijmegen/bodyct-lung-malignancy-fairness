@@ -34,6 +34,7 @@ MODEL_TO_COL = {
 binary_key = {1: True, 0: False}
 keys = {
     "Gender": {1: "Male", 2: "Female"},
+    "Sex": {1: "Male", 2: "Female"},
     "race": {
         1: "White",
         2: "Black",
@@ -304,7 +305,6 @@ def prep_nlst_preds(
 
     if pretty:
         df, democols = nlst_pretty_labels(df, democols)
-        display(df)
     if bin_num:
         df, democols = bin_numerical_columns(df, democols, pretty=pretty)
 
