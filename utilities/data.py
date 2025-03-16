@@ -35,12 +35,13 @@ binary_key = {1: True, 0: False}
 keys = {
     "Gender": {1: "Male", 2: "Female"},
     "Sex": {1: "Male", 2: "Female"},
+    "Overweight": {True: "25 or Above", False: "Below 25"},
     "race": {
         1: "White",
         2: "Black",
         3: "Asian",
-        4: "American Indian or Alaskan Native",
-        5: "Native Hawaiian or Other Pacific Islander",
+        4: "Native American",
+        5: "Native Hawaiian",
         6: "More than one race",
         # 7: 'Unknown',
         # 95: 'Unknown',
@@ -57,7 +58,7 @@ keys = {
         # 98: 'Unknown',
         # 99: 'Unknown'
     },
-    "ethnic": {1: "Hispanic/Latino", 2: "Neither Hispanic nor Latino"},
+    "ethnic": {1: "Hispanic/Latino", 2: "Not Hispanic/Latino"},
     "marital": {
         1: "Never Married",
         2: "Married",
@@ -68,9 +69,9 @@ keys = {
     "educat": {
         1: "8th grade or less",
         2: "9th-11th grade",
-        3: "High school graduate/GED",
-        4: "Post high school training, excluding college",
-        5: "Associate degree/ some college",
+        3: "High School / GED",
+        4: "Post-HS training",
+        5: "Associate Degree",
         6: "Bachelors Degree",
         7: "Graduate School",
     },
@@ -120,7 +121,7 @@ rename_cols = {
     "NoduleCounts": "Nodules Per Scan",
     "Diameter_mm": "Diameter (mm)",
     "SliceCount": "Slices In Scan",
-    "Overweight": "BMI > 25",
+    "Overweight": "BMI Class",
     "educat": "Education Status",
     "Gender": "Gender",
     "Married": "Married",

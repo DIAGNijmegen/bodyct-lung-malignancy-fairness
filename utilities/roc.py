@@ -295,6 +295,7 @@ def plot_rocs_subgroups(
     ci_to_use=0.95,
     num_bootstraps=100,
     imgpath=None,
+    subplots_per_row=3,
 ):
     df_catinfo = catinfo(df, cat)
     display(df_catinfo)
@@ -332,18 +333,18 @@ def plot_rocs_subgroups(
         )
         two_subgroups = True
 
-    if len(models) <= 4:
+    if len(models) <= subplots_per_row:
         fig, ax = plt.subplots(
             1, len(models), figsize=(figheight * len(models) - 0.5, figheight)
         )
     else:
         lm = len(models)
-        if lm % 2 == 1:
-            lm += 1
+        overflow = lm % subplots_per_row
+        overall_height = subplots_per_row + (1 if overflow else 0)
         fig, ax = plt.subplots(
-            2,
-            lm // 2,
-            figsize=(figheight * (lm // 2) - 0.5, figheight * 2),
+            overall_height,
+            lm // overflow,
+            figsize=(figheight * subplots_per_row - 0.5, figheight * overall_height),
             squeeze=False,
         )
         ax = ax.flatten()
