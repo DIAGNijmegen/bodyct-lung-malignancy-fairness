@@ -138,8 +138,8 @@ rename_cols = {
     "smokework": "Worked with Smoker",
     "pipe": "Smoked Pipe",
     "wrkbaki": "Baking",
-    "wrkfoun": "Foundry / Steel Milling",
-    "wrkchem": "Chemicals / Plastics Mfg.",
+    "wrkfoun": "Foundry or Steel Milling",
+    "wrkchem": "Chemicals or Plastics Mfg.",
     "wrkasbe": "Asbestos",
     "wrkfire": "Firefighting",
     "wrksand": "Sandblasting",
@@ -148,9 +148,9 @@ rename_cols = {
     "wrkpain": "Painting",
     "wrkweld": "Welding",
     "wrkflou": "Flour/Feed or Grain Milling",
-    "wrkbutc": "Butchering / Meat Packing",
+    "wrkbutc": "Butchering or Meat Packing",
     "wrkhard": "Hard Rock Mining",
-    "wrkcott": "Cotton / Jute Processing",
+    "wrkcott": "Cotton or Jute Processing",
     "diagasbe": "Asbestosis",
     "diagchas": "Childhood Asthma",
     "diagpneu": "Pneumonia",
@@ -159,7 +159,7 @@ rename_cols = {
     "diagbron": "Bronchiectasis",
     "diagsili": "Silicosis",
     "diagsarc": "Sarcoidosis",
-    "diaghear": "Heart Disease / Attack",
+    "diaghear": "Heart Disease or Attack",
     "diagdiab": "Diabetes",
     "diagadas": "Adult Asthma",
     "diagcopd": "COPD",
@@ -382,7 +382,7 @@ def nlst_pretty_labels(df, nlst_democols):
 
                 if att in keys:
                     df[att] = df[att].replace(keys[att])
-                elif sorted(pd.unique(df[att])) == [0, 1]:
+                elif sorted(pd.unique(df[att])) == [0.0, 1.0]:
                     df[att] = df[att].replace(binary_key)
 
     df2 = df.rename(columns=rename_cols)
@@ -401,14 +401,12 @@ def diffs_category_prevalence(c="Gender", dfsets={}, include_stat=False):
             normalize=True, dropna=False
         ).round(6)
 
+    df = pd.DataFrame(dfdict).drop_duplicates().fillna(0)
+
     for i, m1 in enumerate(dfsets):
         for j, m2 in enumerate(dfsets):
             if j > i:
-                dfdict[f"diff_{m1}_{m2}"] = (
-                    dfdict[f"{m1}_norm"] - dfdict[f"{m2}_norm"]
-                ).round(4)
-
-    df = pd.DataFrame(dfdict).drop_duplicates()
+                df[f"diff_{m1}_{m2}"] = df[f"{m1}_norm"] - df[f"{m2}_norm"]
 
     if include_stat:
         for i, m1 in enumerate(dfsets):
@@ -434,15 +432,33 @@ def diffs_category_prevalence(c="Gender", dfsets={}, include_stat=False):
 def diffs_numerical_means(c="Gender", dfsets={}, include_stat=False):
     dfdict = {}
     for m in dfsets:
-        dfdict[f"{m}"] = dfsets[m][c].describe(percentiles=[0.5]).round(4)
+        dfdict[f"{m}"] = dfsets[m][c].describe(percentiles=[0.25, 0.5, 0.75]).round(4)
 
     for i, m1 in enumerate(dfsets):
         for j, m2 in enumerate(dfsets):
             if j > i:
                 dfdict[f"diff_{m1}_{m2}"] = dfdict[f"{m1}"] - dfdict[f"{m2}"]
 
+    for m in dfsets:
+        dfdict[f"{m}"][
+            "Mean (SD)"
+        ] = f'{dfdict[f"{m}"]["mean"]:.1f} ({dfdict[f"{m}"]["std"]:.1f})'
+        dfdict[f"{m}"][
+            "Median (IQR)"
+        ] = f'{int(dfdict[f"{m}"]["50%"])} ({int(dfdict[f"{m}"]["75%"] - dfdict[f"{m}"]["25%"])})'
+
+    for i, m1 in enumerate(dfsets):
+        for j, m2 in enumerate(dfsets):
+            if j > i:
+                dfdict[f"diff_{m1}_{m2}"]["Mean (SD)"] = (
+                    dfdict[f"{m1}"]["mean"] - dfdict[f"{m2}"]["mean"]
+                )
+                dfdict[f"diff_{m1}_{m2}"]["Median (IQR)"] = (
+                    dfdict[f"{m1}"]["50%"] - dfdict[f"{m2}"]["50%"]
+                )
+
     df = pd.DataFrame(dfdict).drop_duplicates()
-    df.drop(index=["count", "max", "min", "std"], inplace=True)
+    df.drop(index=["count", "max", "min"], inplace=True)
 
     if include_stat:
         for i, m1 in enumerate(dfsets):
