@@ -312,11 +312,12 @@ def plot_threshold_stats_subgroups(
     num_bootstraps=100,
     bootstrap_sample_size=None,
     stats=None,
+    show_mb_count=True,
 ):
-    df_catinfo = catinfo(df, cat)
-    if len(df_catinfo) == 0:
-        return None
-    display(df_catinfo)
+    # df_catinfo = catinfo(df, cat)
+    # if len(df_catinfo) == 0:
+    #     return None
+    # display(df_catinfo)
 
     if diff:
         show_all = False
@@ -341,7 +342,14 @@ def plot_threshold_stats_subgroups(
         )
 
     subgroups = []
-    for val, row in df_catinfo.iterrows():
+    category_info = (
+        stats.groupby("group")[["mal", "ben"]]
+        .mean()
+        .sort_values(by="mal", ascending=False)
+    )
+    for val, row in category_info.iterrows():
+        if val == "ALL":
+            continue
         if row["mal"] >= min_mal:
             subgroups.append(val)
 
@@ -380,6 +388,7 @@ def plot_threshold_stats_subgroups(
                 # print(m, f'(policy == "{p}") & (model == "{m}")')
                 # display(stats)
                 modelstats = stats.query(f'(policy == "{p}") & (model == "{m}")')
+                # print(len(modelstats))
                 scores, ci_lo, ci_hi, labels = [], [], [], []
 
                 for g in subgroups:
@@ -400,9 +409,10 @@ def plot_threshold_stats_subgroups(
                         ci_lo.append(None)
                         ci_hi.append(None)
 
-                    labels.append(
-                        f"{g}\n({subgroup_stats['mal']} mal, {subgroup_stats['ben']} ben)"
-                    )
+                    group_label = g
+                    if show_mb_count:
+                        group_label += f"\n({subgroup_stats['mal']} mal, {subgroup_stats['ben']} ben)"
+                    labels.append(group_label)
 
                 offset = width * multiplier
                 rects = ax[j][i].bar(
@@ -419,8 +429,7 @@ def plot_threshold_stats_subgroups(
             # Add some text for labels, title and custom x-axis tick labels, etc.
             ax[j][i].set_ylabel(s)
             ax[j][i].set_title(f"{dataset_name} (n={len(df)}) {s} by {cat} ({p})")
-            ax[j][i].set_xticks(x + width + 0.2, labels)
-            # ax[j][i].set_xticks(x + width, category)
+            ax[j][i].set_xticks(x + width, labels)
             # ax[j][i].legend(loc='upper left', bbox_to_anchor=(1, 1))
 
             if diff:
@@ -430,11 +439,11 @@ def plot_threshold_stats_subgroups(
 
     handles, labels = ax[0][0].get_legend_handles_labels()
     fig.suptitle(" \n ")
-    fig.legend(handles, labels, loc="upper center", ncol=1 + (len(handles) // 2))
+    fig.legend(handles, labels, loc="upper center", ncol=((len(handles) + 1) // 2))
 
     plt.tight_layout()
     if imgpath is not None:
-        plt.savefig(imgpath, dpi=600)
+        plt.savefig(imgpath, dpi=300)
     plt.show()
 
     return stats

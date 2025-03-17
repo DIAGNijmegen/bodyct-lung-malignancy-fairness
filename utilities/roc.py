@@ -340,10 +340,10 @@ def plot_rocs_subgroups(
     else:
         lm = len(models)
         overflow = lm % subplots_per_row
-        overall_height = subplots_per_row + (1 if overflow else 0)
+        overall_height = (lm // subplots_per_row) + (overflow > 0)
         fig, ax = plt.subplots(
             overall_height,
-            lm // overflow,
+            subplots_per_row,
             figsize=(figheight * subplots_per_row - 0.5, figheight * overall_height),
             squeeze=False,
         )
@@ -367,7 +367,7 @@ def plot_rocs_subgroups(
 
     plt.tight_layout()
     if imgpath is not None:
-        plt.savefig(imgpath, dpi=600)
+        plt.savefig(imgpath, dpi=300)
     plt.show()
 
     if two_subgroups:
