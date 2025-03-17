@@ -69,7 +69,7 @@ keys = {
     "educat": {
         1: "8th grade or less",
         2: "9th-11th grade",
-        3: "High School / GED",
+        3: "HS Graduate / GED",
         4: "Post-HS training",
         5: "Associate Degree",
         6: "Bachelors Degree",
@@ -125,7 +125,7 @@ rename_cols = {
     "educat": "Education Status",
     "Gender": "Gender",
     "Married": "Married",
-    "HighSchoolPlus": "High School Education",
+    "HighSchoolPlus": "HS Education",
     "NonHispanicWhite": "Non-Hispanic White",
     "Unfinished_ed": "Unfinished Education Level",
     "WhiteOrBlack": "White or Black",
