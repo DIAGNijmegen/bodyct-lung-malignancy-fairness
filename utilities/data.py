@@ -389,6 +389,23 @@ def nlst_pretty_labels(df, nlst_democols):
     return df2, pretty_cols
 
 
+## Truncate P values, according to rules (JMIR): https://support.jmir.org/hc/en-us/articles/360000002012-How-should-P-values-be-reported
+def truncate_p(p):
+    if np.isnan(p):
+        return None
+
+    ## For P < 0.001
+    if p < 0.001:
+        return f"< .001"
+
+    elif p < 0.01:
+        p_out = np.floor(p * 10**3) / 10**3
+        return f"{p_out:.3f}".lstrip("0")
+
+    p_out = np.floor(p * 10**2) / 10**2
+    return f"{p_out:.2f}".lstrip("0")
+
+
 ## Includes score test for proportions of disease prevalence.
 ## Score test recommended by Tang et al. (2012): https://doi.org/10.1002/bimj.201100216
 def diffs_category_prevalence(c="Gender", dfsets={}, include_stat=False):

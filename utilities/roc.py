@@ -361,7 +361,7 @@ def plot_rocs_subgroups(
             if p_show < 0.001:
                 title_str += f" (z={z_show:.2f}, p<0.001)"
             else:
-                title_str += f" (z={z_show:.2f}, p={p_show:.3f})"
+                title_str += f" (z={z_show:.2f}, p={truncate_p(p_show)})"
 
         ax_rocs(ax[i], roc[m], title=title_str, catinfo=None, plot_ci=True)
 
