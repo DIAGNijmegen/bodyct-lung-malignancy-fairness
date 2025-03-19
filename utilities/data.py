@@ -31,7 +31,7 @@ MODEL_TO_COL = {
     "PanCan2b": "PanCan2b",
 }
 
-binary_key = {1: True, 0: False}
+binary_key = {1: "True", 0: "False"}
 keys = {
     "Gender": {1: "Male", 2: "Female"},
     "Sex": {1: "Male", 2: "Female"},
@@ -319,16 +319,16 @@ def bin_numerical_columns(df, democols, pretty=False):
 
     ### Cutoff values - incldue in the left interval.
     cutoff_values = {
-        "height": 68,
-        "weight": 180,
-        "smokeage": 16,
-        "smokeday": 25,
-        "smokeyr": 40,
-        "pkyr": 55,
+        "height": 68,  ###
+        "weight": 180,  ###
+        "smokeage": 16,  ###
+        "smokeday": 25,  ###
+        "smokeyr": 40,  ###
+        "pkyr": 55,  ###
         "NoduleCounts": 1,  ### NLST
         "NoduleCountPerScan": 1,  ### DLCST
-        "Diameter_mm": 7,
-        "Age": 61,
+        "Diameter_mm": 6,  ### previously 7. based on some screening guidelines (BTS, ILST, Lung-RADS)
+        "Age": 61,  ### 62 or over. based on data median.
         "SliceCount": 200,  ### Truncated by Sybil preprocessing
     }
 
