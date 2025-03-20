@@ -31,7 +31,6 @@ MODEL_TO_COL = {
     "PanCan2b": "PanCan2b",
 }
 
-binary_key = {1: "True", 0: "False"}
 keys = {
     "Gender": {1: "Male", 2: "Female"},
     "Sex": {1: "Male", 2: "Female"},
@@ -89,6 +88,94 @@ keys = {
         999: "Unknown, cannot be assessed",
     },
 }
+
+binary_key = {
+    1: True,
+    0: False,
+    True: True,
+    False: False,
+    1.0: True,
+    0.0: False,
+}
+### True or False columns.
+boolean_cols = [
+    "Overweight",
+    "Married",
+    "HighSchoolPlus",
+    "NonHispanicWhite",
+    "Unfinished_ed",
+    "smokelive",
+    "cigar",
+    "cigsmok",
+    "smokework",
+    "pipe",
+    "wrkbaki",
+    "wrkfoun",
+    "wrkchem",
+    "wrkasbe",
+    "wrkfire",
+    "wrksand",
+    "wrkfarm",
+    "wrkcoal",
+    "wrkpain",
+    "wrkweld",
+    "wrkflou",
+    "wrkbutc",
+    "wrkhard",
+    "wrkcott",
+    "diagasbe",
+    "diagchas",
+    "diagpneu",
+    "diagstro",
+    "diagemph",
+    "diagbron",
+    "diagsili",
+    "diagsarc",
+    "diaghear",
+    "diagdiab",
+    "diagadas",
+    "diagcopd",
+    "diagfibr",
+    "diagtube",
+    "diaghype",
+    "diagchro",
+    "canckidn",
+    "cancphar",
+    "canccolo",
+    "cancoral",
+    "cancpanc",
+    "canccerv",
+    "cancstom",
+    "cancthyr",
+    "canctran",
+    "cancnasa",
+    "canclary",
+    "cancbrea",
+    "cancesop",
+    "cancblad",
+    "canclung",
+    "GroundGlassOpacity",
+    "NoduleInUpperLung",
+    "Perifissural",
+    "NonSolid",
+    "Calcified",
+    "Spiculation",
+    "PartSolid",
+    "Solid",
+    "SemiSolid",
+    "FamilyHistoryLungCa",
+    "PersonalCancerHist",
+    "wrknomask",
+    "Emphysema",
+    "Adenosquamous_carcinoma",
+    "Small_cell_carcinoma",
+    "Bronchiolo-alveolar_carcinoma",
+    "Carcinoid_tumor",
+    "Adenocarcinoma",
+    "Squamous_cell_carcinoma",
+    "Unclassified_carcinoma",
+    "Large_cell_carcinoma",
+]
 
 rename_types = {
     "demo": "Demographics",
@@ -155,7 +242,7 @@ rename_cols = {
     "diagchas": "Childhood Asthma",
     "diagpneu": "Pneumonia",
     "diagstro": "Stroke",
-    "diagemph": "Emphysema",
+    "diagemph": "Emphysema Diagnosis",
     "diagbron": "Bronchiectasis",
     "diagsili": "Silicosis",
     "diagsarc": "Sarcoidosis",
@@ -382,7 +469,7 @@ def nlst_pretty_labels(df, nlst_democols):
 
                 if att in keys:
                     df[att] = df[att].replace(keys[att])
-                elif sorted(pd.unique(df[att])) == [0.0, 1.0]:
+                elif att in boolean_cols or df[att].dtype == bool:
                     df[att] = df[att].replace(binary_key)
 
     df2 = df.rename(columns=rename_cols)
@@ -411,9 +498,7 @@ def truncate_p(p):
 def diffs_category_prevalence(c="Gender", dfsets={}, include_stat=False):
     dfdict = {}
     for m in dfsets:
-        dfdict[f"{m}_freq"] = (
-            dfsets[m][c].value_counts(normalize=False, dropna=False).astype(int)
-        )
+        dfdict[f"{m}_freq"] = dfsets[m][c].value_counts(normalize=False, dropna=False)
         dfdict[f"{m}_norm"] = 100 * dfsets[m][c].value_counts(
             normalize=True, dropna=False
         ).round(6)

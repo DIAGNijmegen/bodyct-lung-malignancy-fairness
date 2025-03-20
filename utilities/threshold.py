@@ -453,39 +453,31 @@ def plot_threshold_stats_subgroups(
 ## Check if subgroup performances are outside the confidence intervals of other subgroups.
 ## Take as input performances for one subgroup (stats from above).
 def pairwise_comparisons_subgroups(stats, metric="fpr"):
-    stats["model"] = list(stats.index)
+    if "model" not in stats.columns:
+        stats["model"] = list(stats.index)
     modelstats = stats.groupby("model")
     subgroups = list(pd.unique(stats["group"]))
-    print(subgroups)
 
     output_dfs = []
     for m, mdf in modelstats:
         policystats = mdf.groupby("policy")
         for p, pdf in policystats:
             df_array = []
-            for sg1, sg2 in itertools.permutations(subgroups, 2):
+            for sg_idx_1, sg_idx_2 in itertools.permutations(
+                list(range(len(subgroups))), 2
+            ):
+                sg1, sg2 = subgroups[sg_idx_1], subgroups[sg_idx_2]
                 row1 = pdf[pdf["group"] == sg1].iloc[0]
                 row2 = pdf[pdf["group"] == sg2].iloc[0]
                 info_dict = {
+                    "comp_id": f"{metric}_{m}_{p}_{sg1 if (sg_idx_1 < sg_idx_2) else sg2}_{sg1 if (sg_idx_1 > sg_idx_2) else sg2}",
                     "model": m,
                     "policy": p,
                     "Group_1": sg1,
-                    f"mal_1": row1["mal"],
-                    f"ben_1": row1["ben"],
-                    f"tp_1": row1["tp"],
-                    f"tn_1": row1["tn"],
-                    f"fp_1": row1["fp"],
-                    f"fn_1": row1["fn"],
+                    "Group_2": sg2,
                     f"{metric}_1": row1[metric],
                     f"{metric}-CI-lo_1": row1[f"{metric}_lo"],
                     f"{metric}-CI-hi_1": row1[f"{metric}_hi"],
-                    "Group_2": sg2,
-                    f"mal_2": row2["mal"],
-                    f"ben_2": row2["ben"],
-                    f"tp_2": row2["tp"],
-                    f"tn_2": row2["tn"],
-                    f"fp_2": row2["fp"],
-                    f"fn_2": row2["fn"],
                     f"{metric}_2": row2[metric],
                     f"{metric}-CI-lo_2": row2[f"{metric}_lo"],
                     f"{metric}-CI-hi_2": row2[f"{metric}_hi"],
@@ -494,6 +486,22 @@ def pairwise_comparisons_subgroups(stats, metric="fpr"):
                         (row2[metric] > row1[f"{metric}_hi"])
                         or (row2[metric] < row1[f"{metric}_lo"])
                     ),
+                    f"{metric}_CI_notouch": (
+                        (row2[f"{metric}_lo"] > row1[f"{metric}_hi"])
+                        or (row2[f"{metric}_hi"] < row1[f"{metric}_lo"])
+                    ),
+                    f"Group_1_mal": row1["mal"],
+                    f"Group_2_mal": row2["mal"],
+                    f"Group_1_ben": row1["ben"],
+                    f"Group_2_ben": row2["ben"],
+                    f"tp_1": row1["tp"],
+                    f"tp_2": row2["tp"],
+                    f"tn_1": row1["tn"],
+                    f"tn_2": row2["tn"],
+                    f"fp_1": row1["fp"],
+                    f"fp_2": row2["fp"],
+                    f"fn_1": row1["fn"],
+                    f"fn_2": row2["fn"],
                 }
                 df_array.append(info_dict)
 
@@ -575,6 +583,7 @@ def all_attribute_pairwise_comparisons(allstats, metric="fpr", models=MODEL_TO_C
             comparison["col"] = [models[m] for m in comparison["model"]]
             comparison["attribute"] = [a] * len(comparison)
             comparison["category"] = [c] * len(comparison)
+            comparison["comp_id"] = f"{c}_{a}_" + comparison["comp_id"]
             comparison_dfs.append(comparison)
 
     all_comparisons = pd.concat(comparison_dfs, axis=0)
@@ -663,6 +672,7 @@ def all_isolation_pairwise_comparisons(allstats, metric="fpr", models=MODEL_TO_C
                 comparison["filter_val"] = [sub] * len(comparison)
                 comparison["filter_by"] = [con] * len(comparison)
                 comparison["category"] = [cat] * len(comparison)
+                comparison["comp_id"] = f"{cat}_{con}_{sub}_" + comparison["comp_id"]
                 comparison_dfs.append(comparison)
 
     all_comparisons = pd.concat(comparison_dfs, axis=0)
