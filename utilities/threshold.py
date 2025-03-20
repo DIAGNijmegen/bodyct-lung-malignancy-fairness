@@ -452,16 +452,29 @@ def plot_threshold_stats_subgroups(
 
 ## Check if subgroup performances are outside the confidence intervals of other subgroups.
 ## Take as input performances for one subgroup (stats from above).
-def pairwise_comparisons_subgroups(stats, metric="fpr"):
-    if "model" not in stats.columns:
-        stats["model"] = list(stats.index)
-    modelstats = stats.groupby("model")
-    subgroups = list(pd.unique(stats["group"]))
+def pairwise_comparisons_subgroups(stats, metric="fpr", top2=True):
+    subgroups = []
+    category_info = (
+        stats.groupby("group")[["mal", "ben"]]
+        .mean()
+        .sort_values(by="mal", ascending=False)
+    )
+    for val, _ in category_info.iterrows():
+        if val == "ALL":
+            continue
+
+        subgroups.append(val)
+
+    if top2 and len(subgroups) > 2:
+        subgroups = subgroups[0:2]
 
     output_dfs = []
+    modelstats = stats.groupby("col")
     for m, mdf in modelstats:
+        # print("\t", m, len(mdf))
         policystats = mdf.groupby("policy")
         for p, pdf in policystats:
+            # print("\t\t", p, len(pdf))
             df_array = []
             for sg_idx_1, sg_idx_2 in itertools.permutations(
                 list(range(len(subgroups))), 2
@@ -471,7 +484,7 @@ def pairwise_comparisons_subgroups(stats, metric="fpr"):
                 row2 = pdf[pdf["group"] == sg2].iloc[0]
                 info_dict = {
                     "comp_id": f"{metric}_{m}_{p}_{sg1 if (sg_idx_1 < sg_idx_2) else sg2}_{sg1 if (sg_idx_1 > sg_idx_2) else sg2}",
-                    "model": m,
+                    "col": m,
                     "policy": p,
                     "Group_1": sg1,
                     "Group_2": sg2,
@@ -573,14 +586,19 @@ def all_results_subgroups_models(
     return all_perfs
 
 
-def all_attribute_pairwise_comparisons(allstats, metric="fpr", models=MODEL_TO_COL):
+def all_attribute_pairwise_comparisons(allstats, metric="fpr"):
     category_stats = allstats.groupby("category")
     comparison_dfs = []
     for c, category_df in category_stats:
         attribute_stats = category_df.groupby("attribute")
         for a, attribute_df in attribute_stats:
             comparison = pairwise_comparisons_subgroups(attribute_df, metric)
-            comparison["col"] = [models[m] for m in comparison["model"]]
+            # print(f"len(comparison) {c} {a}: {len(comparison)}")
+
+            if len(comparison) == 0:
+                continue
+
+            # comparison["col"] = [models[m] for m in comparison["model"]]
             comparison["attribute"] = [a] * len(comparison)
             comparison["category"] = [c] * len(comparison)
             comparison["comp_id"] = f"{c}_{a}_" + comparison["comp_id"]
@@ -659,16 +677,19 @@ def save_results_isolate_confounders(
         return None
 
 
-def all_isolation_pairwise_comparisons(allstats, metric="fpr", models=MODEL_TO_COL):
+def all_isolation_pairwise_comparisons(allstats, metric="fpr"):
     category_stats = allstats.groupby("category")
     comparison_dfs = []
     for cat, category_df in category_stats:
         confounder_stats = category_df.groupby("filter_by")
         for con, confounder_df in confounder_stats:
-            subset_stats = confounder_df.group_by("filter_val")
+            subset_stats = confounder_df.groupby("filter_val")
             for sub, subset_df in subset_stats:
                 comparison = pairwise_comparisons_subgroups(subset_df, metric)
-                comparison["col"] = [models[m] for m in comparison["model"]]
+                if len(comparison) == 0:
+                    continue
+
+                # comparison["col"] = [models[m] for m in comparison["model"]]
                 comparison["filter_val"] = [sub] * len(comparison)
                 comparison["filter_by"] = [con] * len(comparison)
                 comparison["category"] = [cat] * len(comparison)
