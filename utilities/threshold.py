@@ -496,16 +496,24 @@ def pairwise_comparisons_subgroups(stats, metric="fpr", top2=True):
                     f"{metric}-CI-hi_2": row2[f"{metric}_hi"],
                     f"{metric}_diff": row2[metric] - row1[metric],
                     f"{metric}_outside_CI": (
-                        (row2[metric] > row1[f"{metric}_hi"])
-                        or (row2[metric] < row1[f"{metric}_lo"])
-                        or (row1[metric] > row2[f"{metric}_hi"])
-                        or (row1[metric] < row2[f"{metric}_lo"])
+                        (
+                            (row2[metric] > row1[f"{metric}_hi"])
+                            or (row2[metric] < row1[f"{metric}_lo"])
+                        )
+                        and (
+                            (row1[metric] > row2[f"{metric}_hi"])
+                            or (row1[metric] < row2[f"{metric}_lo"])
+                        )
                     ),
                     f"{metric}_CI_notouch": (
-                        (row2[f"{metric}_lo"] > row1[f"{metric}_hi"])
-                        or (row2[f"{metric}_hi"] < row1[f"{metric}_lo"])
-                        or (row1[f"{metric}_lo"] > row2[f"{metric}_hi"])
-                        or (row1[f"{metric}_hi"] < row2[f"{metric}_lo"])
+                        (
+                            (row2[f"{metric}_lo"] > row1[f"{metric}_hi"])
+                            or (row2[f"{metric}_hi"] < row1[f"{metric}_lo"])
+                        )
+                        and (
+                            (row1[f"{metric}_lo"] > row2[f"{metric}_hi"])
+                            or (row1[f"{metric}_hi"] < row2[f"{metric}_lo"])
+                        )
                     ),
                     f"Group_1_mal": row1["mal"],
                     f"Group_2_mal": row2["mal"],

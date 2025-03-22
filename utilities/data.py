@@ -34,7 +34,7 @@ MODEL_TO_COL = {
 keys = {
     "Gender": {1: "Male", 2: "Female"},
     "Sex": {1: "Male", 2: "Female"},
-    "Overweight": {True: "25 or Above", False: "Below 25"},
+    "Overweight": {True: "25+", False: "< 25"},
     "race": {
         1: "White",
         2: "Black",
