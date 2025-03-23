@@ -34,7 +34,7 @@ MODEL_TO_COL = {
 keys = {
     "Gender": {1: "Male", 2: "Female"},
     "Sex": {1: "Male", 2: "Female"},
-    "Overweight": {True: "25+", False: "< 25"},
+    "Overweight": {True: "≥ 25", False: "< 25"},
     "race": {
         1: "White",
         2: "Black",
@@ -188,12 +188,13 @@ rename_types = {
     "lungcanc": "Lung Cancer",
     "scanner": "Scanner",
 }
+
 rename_cols = {
     ### DLCST
     "Sex": "Gender",
     "NoduleCountPerScan": "Nodules Per Scan",
     ### NLST
-    "BMI": "BMI",
+    "BMI": "Body Mass Index",
     "Age": "Age",
     "height": "Height",
     "weight": "Weight",
@@ -208,7 +209,7 @@ rename_cols = {
     "NoduleCounts": "Nodules Per Scan",
     "Diameter_mm": "Diameter (mm)",
     "SliceCount": "Slices In Scan",
-    "Overweight": "BMI Class",
+    "Overweight": "BMI",
     "educat": "Education Status",
     "Gender": "Gender",
     "Married": "Married",
