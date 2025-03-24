@@ -45,3 +45,8 @@ THRESHOLD_POLICIES = (
     ("Specificity", 1.0),
     ("Youden J", 1.0),  ## Max J statistic
 )
+
+DLCST_DEMOCOLS = {
+    "cat": {"demo": ["Sex"], "other": ["FamilyHistoryLungCa", "Emphysema"]},
+    "num": {"demo": ["Age"], "other": ["NoduleCountPerScan"]},
+}
