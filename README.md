@@ -1,4 +1,4 @@
-# Fairness of Lung Malignancy Risk Estimation Models
+# Fairness of Malignancy Risk Estimation Models
 *Shaurya Gaur | MSc Thesis | Sep 2024 - Apr 2025*
 
 This repository investigates the biases of the below risk estimation models. The main examinations are the ROC curve and threshold-based metrics (true/false positive/negative rates, etc.). However, code exploring score distributions, linear regressions, calibration curve disparities, and precision-recall curves (PRC) is also inlcluded. We evaluate on the NLST and DLCST datasets.
