@@ -97,12 +97,12 @@ DLCST_MODELCOLS = {
 }
 
 NLST_1172_MODELCOLS = {
-    "Venkadesh": "DL_cal",
+    # "Venkadesh": "DL_cal",
     "De Haas Combined": "Thijmen_mean_cal",
     "De Haas Local": "Thijmen_local_cal",
     "De Haas Global": "Thijmen_global_hidden_cal",
-    "Sybil (Year 1)": "sybil_year1",
-    "PanCan2b": "PanCan2b",
+    # "Sybil (Year 1)": "sybil_year1",
+    # "PanCan2b": "PanCan2b",
 }
 
 NLST_5911_MODELCOLS = {
@@ -462,8 +462,9 @@ def threshold_results_pretty(
     else:
         df_res["Attribute"] = df_res["attribute"]
 
+    df_res = df_res.rename(columns={"policy": "Policy"})
     df_res = df_res.set_index(
-        pd.MultiIndex.from_frame(df_res[["policy", "Category", "Attribute", "Group"]])
+        pd.MultiIndex.from_frame(df_res[["Policy", "Category", "Attribute", "Group"]])
     )
     model_results = {m: dfm[[metric, "CI"]] for m, dfm in df_res.groupby("model")}
 
@@ -472,7 +473,7 @@ def threshold_results_pretty(
     df_out = df_out.sort_values(by="Malignant Scans", ascending=False)
 
     df_out = df_out.sort_index(
-        ascending=True, level=["policy", "Category", "Attribute"], sort_remaining=False
+        ascending=True, level=["Policy", "Category", "Attribute"], sort_remaining=False
     )[model_order]
     return df_out
 
