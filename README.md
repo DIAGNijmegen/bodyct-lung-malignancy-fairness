@@ -9,7 +9,7 @@ We evaluate the following risk estimation models:
 
 * De Haas Models (aka "Tijmen's Model"): [DIAGNijmegen/bodyct-lung-malignancy](https://github.com/DIAGNijmegen/bodyct-lung-malignancy)
 
-* Sybil (from [MIT Jameel Clinic](https://github.com/reginabarzilaygroup/Sybil)): [DIAGNijmegen/bodyct-sybil-lung-cancer-risk-2](https://github.com/DIAGNijmegen/bodyct-sybil-lung-cancer-risk-2)
+* Sybil (from [MIT Jameel Clinic](https://github.com/reginabarzilaygroup/Sybil)): [DIAGNijmegen/bodyct-sybil-lung-cancer-risk](https://github.com/DIAGNijmegen/bodyct-sybil-lung-cancer-risk)
 
 * PanCan2b (Brock Malignancy Calculator): included in [DIAGNijmegen/bodyct-common](https://github.com/DIAGNijmegen/bodyct-common/blob/master/clinical_models/BrockMalignancyCalculator.py)
 
@@ -23,7 +23,7 @@ In the main directory, Jupyter (`.ipynb`) notebooks evaluations start with the f
 
 After these fields, there are sometimes some other indicatiosn:
 
-* `tijmen` indicates that NLST the evaluation includes the De Haas combined model. This model's final linear layer was trained on a different validation split (and not like the cross-validation for the other De Haas and Venkadesh models), and so it can be only validated on a subset 20% of the size of the other validation set.
+* `tijmen` indicates that with NLST the evaluation includes the De Haas combined model. This model's final linear layer was trained on a different validation split (and not like the cross-validation for the other De Haas and Venkadesh models), and so it can be only validated on a subset 20% of the size of the other validation set.
 
 * `confound_DEMOGRAPHIC`: we see if the performance disparity of that demographic persists when isolating for confounders.
 
