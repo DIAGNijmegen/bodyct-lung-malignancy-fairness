@@ -131,6 +131,120 @@ RENAME_MODELS = {
 }
 
 
+NLST_POSSIBLE_CONFOUNDERS = {
+    "num": {
+        "demo": ["BMI", "Age", "height", "weight"],
+        "smoke": ["smokeage", "smokeday", "smokeyr", "pkyr"],
+        "other": ["NoduleCounts", "Diameter_mm", "SliceCount"],
+    },
+    "cat": {
+        "demo": [
+            "Age > 61",
+            "Gender",
+            "HighSchoolPlus",
+            "Married",
+            "Overweight",
+            "Unfinished_ed",
+            "ethnic",
+            "height > 68",
+            "weight > 180",
+        ],
+        "smoke": [
+            "cigar",
+            "cigsmok",
+            "pipe",
+            "pkyr > 55",
+            "smokeage > 16",
+            "smokeday > 25",
+            "smokelive",
+            "smokework",
+            "smokeyr > 40",
+        ],
+        "work": [
+            "wrkbaki",
+            "wrkfoun",
+            "wrkchem",
+            "wrkasbe",
+            "wrkfire",
+            "wrksand",
+            "wrkfarm",
+            "wrkcoal",
+            "wrkpain",
+            "wrkweld",
+            "wrkflou",
+            "wrkbutc",
+            "wrkhard",
+            "wrkcott",
+        ],
+        "disease": [
+            "diagasbe",
+            "diagchas",
+            "diagpneu",
+            "diagstro",
+            "diagemph",
+            "diagbron",
+            "diagsili",
+            "diagsarc",
+            "diaghear",
+            "diagdiab",
+            "diagadas",
+            "diagcopd",
+            "diagfibr",
+            "diagtube",
+            "diaghype",
+            "diagchro",
+        ],
+        "canchist": [
+            "canckidn",
+            "cancphar",
+            "canccolo",
+            "cancoral",
+            "cancpanc",
+            "canccerv",
+            "cancstom",
+            "cancthyr",
+            "canctran",
+            "cancnasa",
+            "canclary",
+            "cancbrea",
+            "cancesop",
+            "cancblad",
+            "canclung",
+        ],
+        "nodule": [
+            "GroundGlassOpacity",
+            "NoduleInUpperLung",
+            "Perifissural",
+            "NonSolid",
+            "Calcified",
+            "Spiculation",
+            "PartSolid",
+            "Solid",
+            "SemiSolid",
+        ],
+        "other": [
+            "Diameter_mm > 6",
+            "Emphysema",
+            "FamilyHistoryLungCa",
+            "NoduleCounts > 1",
+            "PersonalCancerHist",
+            "wrknomask",
+        ],
+        "lungcanc": [
+            "LC_stage",
+            "Adenosquamous_carcinoma",
+            "Small_cell_carcinoma",
+            "Bronchiolo-alveolar_carcinoma",
+            "Carcinoid_tumor",
+            "Adenocarcinoma",
+            "Squamous_cell_carcinoma",
+            "Unclassified_carcinoma",
+            "Large_cell_carcinoma",
+        ],
+    },
+}
+
+
 def roc_results_pretty(df, model_order_0, precision=TABLE_SCORE_PRECISION):
     model_order = [RENAME_MODELS[m] for m in model_order_0]
     df.rename(index=RENAME_MODELS, inplace=True)
@@ -378,15 +492,6 @@ def get_malignancy_rate(row, dfs):
 
 
 def confounders_by_attribute(df, attribute, cols, precision=1):
-    dfsets_mal = {
-        f"{val}": dfv for val, dfv in df.query("label == 1").groupby(attribute)
-    }
-    dfsets_ben = {
-        f"{val}": dfv for val, dfv in df.query("label == 0").groupby(attribute)
-    }
-    dfsets = {f"{val}": dfv for val, dfv in df.groupby(attribute)}
-    subgroups = list(dfsets.keys())
-
     dfsets = {}
     subgroups = []
     for val, dfv in df.groupby(attribute):
@@ -399,72 +504,79 @@ def confounders_by_attribute(df, attribute, cols, precision=1):
             }
         )
 
-    cols_to_use = ["Mal", "Ben"]
-    cols_to_use = ["Scans"]
     subgroups_pretty_key = {
         sg: prettify_result_val(attribute, sg)[1] for sg in subgroups
     }
-    cat_df = data.combine_diff_dfs(cols["cat"], data.diffs_category_prevalence, dfsets)
 
+    cat_df = data.combine_diff_dfs(cols["cat"], data.diffs_category_prevalence, dfsets)
+    cols_cat = ["Mal", "Ben", "Total %"]
     for s in subgroups:
-        for c in cols_to_use:
-            cat_df[f"{subgroups_pretty_key[s]} {c} (%)"] = cat_df.apply(
-                lambda x: num_with_percent(x, f"{s}-{c}", precision), axis=1
-            )
+        cat_df[f"{subgroups_pretty_key[s]} Mal"] = cat_df[f"{s}-Mal_freq"].apply(int)
+        cat_df[f"{subgroups_pretty_key[s]} Ben"] = cat_df[f"{s}-Ben_freq"].apply(int)
+        cat_df[f"{subgroups_pretty_key[s]} Total %"] = cat_df[f"{s}-Scans_norm"].apply(
+            lambda x: np.around(x, precision)
+        )
+
+        # for c in cols_to_use:
+        #     cat_df[f"{subgroups_pretty_key[s]} {c} (%)"] = cat_df.apply(
+        #         lambda x: num_with_percent(x, f"{s}-{c}", precision), axis=1
+        #     )
 
     cat_df = cat_df[pd.notna(cat_df["value"])]
     cat_df = cat_df[cat_df["attribute"] != attribute]
 
-    cat_df["category"] = cat_df.apply(
+    cat_df["Category"] = cat_df.apply(
         lambda row: data.rename_types[row["category"]], axis=1
     )
-    cat_df["attribute2"] = cat_df.apply(
+    cat_df["Confounder"] = cat_df.apply(
         lambda row: prettify_result_val(row["attribute"], row["value"])[0],
         axis=1,
     )
-    cat_df["value"] = cat_df.apply(
+    cat_df["Subset"] = cat_df.apply(
         lambda row: prettify_result_val(row["attribute"], row["value"])[1],
         axis=1,
     )
-    cat_df["attribute"] = cat_df["attribute2"]
     cat_df = cat_df.set_index(
-        pd.MultiIndex.from_frame(cat_df[["category", "attribute", "value"]])
+        pd.MultiIndex.from_frame(cat_df[["Category", "Confounder", "Subset"]])
     )
 
     cat_df = cat_df[
+        # [
+        #     f"{subgroups_pretty_key[s]} {col} (%)"
+        #     for s, col in itertools.product(subgroups, cols_to_use)
+        # ]
         [
-            f"{subgroups_pretty_key[s]} {cond} (%)"
-            for s, cond in itertools.product(subgroups, cols_to_use)
+            f"{subgroups_pretty_key[s]} {col}"
+            for s, col in itertools.product(subgroups, cols_cat)
         ]
         + [
             f"diff_{s1}-Scans_{s2}-Scans"
             for s1, s2 in itertools.combinations(subgroups, 2)
         ]
     ]
-    # cat_df = cat_df.sort_values(by=f"diff_{subgroups[0]}_{subgroups[1]}", ascending=True)
     cat_df = cat_df.sort_index(ascending=True)
 
+    cols_num = ["Mal", "Ben"]
     num_df = data.combine_diff_dfs(cols["num"], data.diffs_numerical_means, dfsets)
-    num_df["category"] = num_df.apply(
+    num_df["Category"] = num_df.apply(
         lambda row: data.rename_types[row["category"]], axis=1
     )
-    num_df["attribute2"] = num_df.apply(
+    num_df["Confounder"] = num_df.apply(
         lambda row: prettify_result_val(row["attribute"], row["value"])[0],
         axis=1,
     )
-    num_df["value"] = num_df.apply(
+    num_df["Subset"] = num_df.apply(
         lambda row: prettify_result_val(row["attribute"], row["value"])[1],
         axis=1,
     )
-    num_df["attribute"] = num_df["attribute2"]
     num_df = num_df.set_index(
-        pd.MultiIndex.from_frame(num_df[["category", "attribute", "value"]])
+        pd.MultiIndex.from_frame(num_df[["Category", "Confounder", "Subset"]])
     )
 
     num_df = num_df[num_df["attribute"] != attribute]
     num_df = num_df[num_df["value"].isin(["Median (IQR)", "Mean (SD)"])]
     num_df = num_df[
-        [f"{s}-{cond}" for s, cond in itertools.product(subgroups, cols_to_use)]
+        [f"{s}-{col}" for s, col in itertools.product(subgroups, cols_num)]
         + [
             f"diff_{s1}-Scans_{s2}-Scans"
             for s1, s2 in itertools.combinations(subgroups, 2)
@@ -472,8 +584,8 @@ def confounders_by_attribute(df, attribute, cols, precision=1):
     ]
     num_df = num_df.rename(
         columns={
-            f"{s}-{cond}": f"{subgroups_pretty_key[s]} {cond}"
-            for s, cond in itertools.product(subgroups, cols_to_use)
+            f"{s}-{col}": f"{subgroups_pretty_key[s]} {col}"
+            for s, col in itertools.product(subgroups, cols_num)
         }
     )
     num_df = num_df.sort_index(ascending=True)
@@ -485,14 +597,14 @@ def confounders_by_attribute(df, attribute, cols, precision=1):
         cat_df["Abs Diff"] = cat_df["Difference"].abs()
 
         cat_df_cols = [
-            f"{subgroups_pretty_key[s]} {cond} (%)"
-            for s, cond in itertools.product(subgroups, cols_to_use)
+            f"{subgroups_pretty_key[s]} {col}"
+            for s, col in itertools.product(subgroups, cols_cat)
         ]
         cat_df2 = cat_df[cat_df_cols]
         cat_df2.columns = pd.MultiIndex.from_tuples(
             [
-                (subgroups_pretty_key[s], f"{cond} (%)")
-                for s, cond in itertools.product(subgroups, cols_to_use)
+                (subgroups_pretty_key[s], col)
+                for s, col in itertools.product(subgroups, cols_cat)
             ]
         )
         cat_df2["Difference"] = cat_df["Difference"]
@@ -502,133 +614,18 @@ def confounders_by_attribute(df, attribute, cols, precision=1):
     return cat_df, num_df
 
 
-NLST_POSSIBLE_CONFOUNDERS = {
-    "num": {
-        "demo": ["BMI", "Age", "height", "weight"],
-        "smoke": ["smokeage", "smokeday", "smokeyr", "pkyr"],
-        "other": ["NoduleCounts", "Diameter_mm", "SliceCount"],
-    },
-    "cat": {
-        "demo": [
-            "Age > 61",
-            "Gender",
-            "HighSchoolPlus",
-            "Married",
-            "Overweight",
-            "Unfinished_ed",
-            "ethnic",
-            "height > 68",
-            "weight > 180",
-        ],
-        "smoke": [
-            "cigar",
-            "cigsmok",
-            "pipe",
-            "pkyr > 55",
-            "smokeage > 16",
-            "smokeday > 25",
-            "smokelive",
-            "smokework",
-            "smokeyr > 40",
-        ],
-        "work": [
-            "wrkbaki",
-            "wrkfoun",
-            "wrkchem",
-            "wrkasbe",
-            "wrkfire",
-            "wrksand",
-            "wrkfarm",
-            "wrkcoal",
-            "wrkpain",
-            "wrkweld",
-            "wrkflou",
-            "wrkbutc",
-            "wrkhard",
-            "wrkcott",
-        ],
-        "disease": [
-            "diagasbe",
-            "diagchas",
-            "diagpneu",
-            "diagstro",
-            "diagemph",
-            "diagbron",
-            "diagsili",
-            "diagsarc",
-            "diaghear",
-            "diagdiab",
-            "diagadas",
-            "diagcopd",
-            "diagfibr",
-            "diagtube",
-            "diaghype",
-            "diagchro",
-        ],
-        "canchist": [
-            "canckidn",
-            "cancphar",
-            "canccolo",
-            "cancoral",
-            "cancpanc",
-            "canccerv",
-            "cancstom",
-            "cancthyr",
-            "canctran",
-            "cancnasa",
-            "canclary",
-            "cancbrea",
-            "cancesop",
-            "cancblad",
-            "canclung",
-        ],
-        "nodule": [
-            "GroundGlassOpacity",
-            "NoduleInUpperLung",
-            "Perifissural",
-            "NonSolid",
-            "Calcified",
-            "Spiculation",
-            "PartSolid",
-            "Solid",
-            "SemiSolid",
-        ],
-        "other": [
-            "Diameter_mm > 6",
-            "Emphysema",
-            "FamilyHistoryLungCa",
-            "NoduleCounts > 1",
-            "PersonalCancerHist",
-            "wrknomask",
-        ],
-        "lungcanc": [
-            "LC_stage",
-            "Adenosquamous_carcinoma",
-            "Small_cell_carcinoma",
-            "Bronchiolo-alveolar_carcinoma",
-            "Carcinoid_tumor",
-            "Adenocarcinoma",
-            "Squamous_cell_carcinoma",
-            "Unclassified_carcinoma",
-            "Large_cell_carcinoma",
-        ],
-    },
-}
-
-
-def sort_multiindex_by_attribute(df, col="Abs Diff", topn=25):
-    attribute_max = df.groupby("attribute")[col].max()
+def sort_multiindex_by_confounders(df, col="Abs Diff", topn=10):
+    attribute_max = df.groupby("Confounder")[col].max()
     sorted_attributes = attribute_max.sort_values(ascending=False).index
     sorted_topn = list(sorted_attributes)[0:topn]
 
     df2 = df.reset_index()
-    df2["attribute"] = pd.Categorical(
-        df2["attribute"], categories=sorted_attributes, ordered=True
+    df2["Confounder"] = pd.Categorical(
+        df2["Confounder"], categories=sorted_attributes, ordered=True
     )
-    df2 = df2.sort_values("attribute")
-    df2 = df2.set_index(["category", "attribute", "value"])
-    df2 = df2.query("attribute in @sorted_topn")
-    display(df2)
+    df2 = df2.sort_values("Confounder")
+    df2 = df2.set_index(["Category", "Confounder", "Subset"])
+    df2 = df2.query("Confounder in @sorted_topn")
     df2 = df2.drop(columns=["Difference", "Abs Diff"]).droplevel(0)
     return df2, sorted_topn
 
@@ -653,7 +650,7 @@ def roc_isolations_pretty(df0, attribute, model, precision=TABLE_SCORE_PRECISION
     df["Subset"] = df.apply(
         lambda row: prettify_result_val(row["filter_by"], row["filter_val"])[1], axis=1
     )
-    df["P"] = df.apply(lambda row: data.truncate_p(row["p"]), axis=1)
+    df["p"] = df.apply(lambda row: data.truncate_p(row["p"]), axis=1)
     df = df.set_index(
         pd.MultiIndex.from_frame(df[["Category", "Confounder", "Subset"]])
     )
@@ -668,7 +665,7 @@ def roc_isolations_pretty(df0, attribute, model, precision=TABLE_SCORE_PRECISION
 
     ## Group 1 and Group 2 don't necessarily always align. We need to realign them.
     # cols_to_realign = ['mal', 'ben', 'pct', 'pct_mal', 'AUC']
-    cols_to_realign = ["AUC"]
+    cols_to_realign = {"AUC": "ROC AUC"}
 
     def realign_group_num(row, subgroup, col="AUC"):
         if row["Group_1"] == subgroup:
@@ -680,21 +677,25 @@ def roc_isolations_pretty(df0, attribute, model, precision=TABLE_SCORE_PRECISION
 
     for sg in subgroups:
         for c in cols_to_realign:
-            df[f"{subgroups_pretty_key[sg]} {c}"] = df.apply(
+            df[f"{subgroups_pretty_key[sg]} {cols_to_realign[c]}"] = df.apply(
                 lambda row: realign_group_num(row, sg, c), axis=1
             )
 
     df2 = df[
         [
             f"{subgroups_pretty_key[sg]} {col}"
-            for sg, col in itertools.product(subgroups, cols_to_realign)
+            for sg, col in itertools.product(subgroups, cols_to_realign.values())
         ]
     ]
     multicol = pd.MultiIndex.from_tuples(
-        list(itertools.product(list(subgroups_pretty_key.values()), cols_to_realign))
+        list(
+            itertools.product(
+                list(subgroups_pretty_key.values()), cols_to_realign.values()
+            )
+        )
     )
     df2.columns = multicol
-    df2["P"] = df["P"]
+    df2["p"] = df["p"]
     # df = df[['p'] + [f"{subgroups_pretty_key[sg]} AUC" for sg in subgroups]]
     return df2
 
@@ -705,38 +706,36 @@ def prevalence_plus_isolated_roc(
     cols,
     results,
     model,
-    data_precision=1,
-    result_precision=TABLE_SCORE_PRECISION,
+    topn=10,
+    result_prec=TABLE_SCORE_PRECISION,
 ):
-    cat_prev, _ = confounders_by_attribute(
-        dataset, attribute, cols, precision=data_precision
-    )
+    prevalence, _ = confounders_by_attribute(dataset, attribute, cols, precision=1)
+    prevalence, topn_confounders = sort_multiindex_by_confounders(prevalence, topn=topn)
+
     roc_results = roc_isolations_pretty(
-        results, attribute, model, precision=result_precision
-    )
-    combined_df = pd.concat([cat_prev, roc_results], axis=1).dropna(axis=0)
+        results, attribute, model, precision=result_prec
+    ).droplevel(0)
+
+    combined_df = pd.concat([prevalence, roc_results], axis=1).dropna(axis=0)
 
     subgroups = list(
         set(list(pd.unique(results["Group_1"])) + list(pd.unique(results["Group_2"])))
     )
     subgroups_pretty = [prettify_result_val(attribute, sg)[1] for sg in subgroups]
-    subcols_to_align = ["Prevalence (\\%)", "AUC", "mal", "ben", "pct", "pct_mal"]
-    other_cols = ["Difference", "Abs Diff", "p", "P", "AUC_diff"]
+    subcols_to_align = ["Mal", "Ben", "Total %", "ROC AUC"]
 
     combined_df = combined_df[
-        [f"{s} {c}" for s, c in itertools.product(subgroups_pretty, subcols_to_align)]
-        + other_cols
+        list(itertools.product(subgroups_pretty, subcols_to_align)) + [("p", "")]
     ]
-    multicol_idx = pd.MultiIndex.from_tuples(
-        list(itertools.product(subgroups_pretty, subcols_to_align))
-    ).append(pd.Index(other_cols))
-    combined_df.columns = multicol_idx
 
-    return combined_df
+    for s, c in itertools.product(subgroups_pretty, ["Mal", "Ben"]):
+        combined_df[(s, c)] = combined_df[(s, c)].astype(int)
+
+    return combined_df, topn_confounders
 
 
 def threshold_isolations_pretty(
-    df, model, demographic="Gender", metric="TPR", precision=TABLE_SCORE_PRECISION
+    df, model, metric="TPR", precision=TABLE_SCORE_PRECISION
 ):
     df["model"] = df.apply(lambda row: COL_TO_MODEL[row["col"]], axis=1)
     df = df.query(f'model == "{model}" & Group_1 != "ALL" & Group_2 != "ALL"')
@@ -751,11 +750,11 @@ def threshold_isolations_pretty(
     g1, g2 = pd.unique(df["Group_1"])[0], pd.unique(df["Group_2"])[0]
 
     ## Get metric info in nice interval notation.
-    df[f"{g1} {metric}"] = df.apply(
+    df[g1] = df.apply(
         lambda row: pretty_interval(row, precision, group_num=1, metric=metric),
         axis=1,
     )
-    df[f"{g2} {metric}"] = df.apply(
+    df[g2] = df.apply(
         lambda row: pretty_interval(row, precision, group_num=2, metric=metric),
         axis=1,
     )
@@ -793,8 +792,44 @@ def threshold_isolations_pretty(
         sort_remaining=False,
     )
 
-    df2 = df[[f"{sg} {col}" for sg, col in itertools.product([g1, g2], [metric])]]
-    multicol = pd.MultiIndex.from_tuples(list(itertools.product([g1, g2], [metric])))
-    df2.columns = multicol
-    df2["CI"] = df["CI"]
-    return df2
+    df = df[[g1, g2, "CI"]]
+    return df
+
+
+def threshold_isolation_pairwise(
+    df,
+    demo,
+    model,
+    policies,
+    metric_tuples=[("TPR", "90% Specificity"), ("TNR", "90% Sensitivity")],
+    topn_confs=None,
+    precision=TABLE_SCORE_PRECISION,
+    pairwise_comps=None,
+):
+    df_pretty, _ = threshold_stats_pretty(df, policies, demographic_for_isolations=demo)
+    metrics = [m for m, _ in metric_tuples]
+
+    if pairwise_comps is None:
+        pairwise_comps = {
+            m: threshold.all_isolation_pairwise_comparisons(df_pretty, metric=m)
+            for m in metrics
+        }
+
+    perf_tables = {}
+    for m, p in metric_tuples:
+        if m not in pairwise_comps:
+            pairwise_comps[m] = threshold.all_isolation_pairwise_comparisons(
+                df_pretty, metric=m
+            )
+
+        res = threshold_isolations_pretty(
+            pairwise_comps[m], model=model, metric=m, precision=precision
+        )
+        res = res.xs(p, level="policy").droplevel(0)
+        if topn_confs:
+            res = res.loc[topn_confs, :]
+
+        perf_tables[f"{m} ({p})"] = res
+
+    df_out = pd.concat(perf_tables, axis=1)
+    return df_out, pairwise_comps
