@@ -439,10 +439,6 @@ def bin_numerical_columns(df, democols, pretty=False):
     return df, democols
 
 
-def bmi_calc(height, weight):
-    return (weight * 703) / (height * height)
-
-
 def corrmat(df, rows, cols, method="kendall", vmin=-1, vmax=1, cmap="RdYlGn"):
     cols_list = list(set(rows).union(set(cols)))
     corrmat = df[cols_list].corr(method=method)
