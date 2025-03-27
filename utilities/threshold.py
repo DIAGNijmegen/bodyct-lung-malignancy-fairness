@@ -410,7 +410,7 @@ def plot_threshold_stats_subgroups(
                         ci_lo.append(None)
                         ci_hi.append(None)
 
-                    group_label = g
+                    group_label = str(g)
                     if show_mb_count:
                         group_label += f"\n({subgroup_stats['mal']} mal, {subgroup_stats['ben']} ben)"
                     labels.append(group_label)

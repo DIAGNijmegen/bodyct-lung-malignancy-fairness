@@ -335,7 +335,7 @@ def plot_rocs_subgroups(
 
     if len(models) <= subplots_per_row:
         fig, ax = plt.subplots(
-            1, len(models), figsize=(figheight * len(models) - 0.5, figheight)
+            1, len(models), figsize=(figheight * len(models), figheight), squeeze=False
         )
     else:
         lm = len(models)
@@ -344,12 +344,13 @@ def plot_rocs_subgroups(
         fig, ax = plt.subplots(
             overall_height,
             subplots_per_row,
-            figsize=(figheight * subplots_per_row - 0.5, figheight * overall_height),
+            figsize=(figheight * subplots_per_row, figheight * overall_height),
             squeeze=False,
         )
-        ax = ax.flatten()
 
-    fig.suptitle(f"{dataset_name} (n={len(df)}) Model ROC Curves Split By {cat}")
+    ax = ax.flatten()
+
+    # fig.suptitle(f"{dataset_name} (n={len(df)}) Model ROC Curves Split By {cat}")
 
     for i, m in enumerate(models):
         title_str = f"{m} on {dataset_name} (n={len(df)}) \nSplit by {cat}"
@@ -442,6 +443,77 @@ def all_results_subgroups_models(
         return all_perfs
     else:
         return None
+
+
+def plot_rocs_isolate_confounder(
+    df,
+    cat,
+    confounder,
+    models=MODEL_TO_COL,
+    dataset_name="NLST Scans",
+    figheight=5,
+    true_col="label",
+    ci_to_use=0.95,
+    num_bootstraps=100,
+    imgpath=None,
+):
+    subsets = df.groupby(confounder)
+    fig, ax = plt.subplots(
+        2,
+        len(models),
+        figsize=(figheight * len(models), 2.2 * figheight),
+        squeeze=False,
+    )
+    bintables = []
+
+    for i, (subset_name, subset_df) in enumerate(subsets):
+        roc, auc, z, p = calc_rocs_subgroups_models(
+            subset_df,
+            cat,
+            models=models,
+            include_all=False,
+            true_col=true_col,
+            ci_to_use=ci_to_use,
+            num_bootstraps=num_bootstraps,
+        )
+
+        dfc = catinfo(subset_df, cat)
+        two_subgroups = len(dfc) >= 2
+        top2_groups = None
+
+        if two_subgroups:
+            top2_groups = dfc.sort_values(by="mal", ascending=False).index.values[0:2]
+            new_roc = {m: {g: roc[m][g] for g in top2_groups} for m in models}
+            roc = new_roc
+
+        for j, m in enumerate(models):
+            title_str = f"{m} Split by {cat}\n{dataset_name}, {confounder}: {subset_name} (n={len(df)})"
+
+            if two_subgroups:
+                z_show = z[m].loc[top2_groups[0], top2_groups[1]]
+                p_show = p[m].loc[top2_groups[0], top2_groups[1]]
+
+                if p_show < 0.001:
+                    title_str += f"\n(z={z_show:.2f}, p<0.001)"
+                else:
+                    title_str += f"\n(z={z_show:.2f}, p={truncate_p(p_show)})"
+
+            ax_rocs(ax[i][j], roc[m], title=title_str, catinfo=None, plot_ci=True)
+
+        if two_subgroups:
+            bintable = binary_group_roc_table(auc, p, top2_groups, z)
+            bintable["filter_val"] = [subset_name] * len(bintable)
+            bintables.append(bintable)
+
+    if len(bintables) > 0:
+        allbintable = pd.concat(bintables, axis=0)
+
+    plt.tight_layout()
+    if imgpath is not None:
+        plt.savefig(imgpath, dpi=300)
+    plt.show()
+
+    return allbintable
 
 
 def save_results_isolate_confounders(
