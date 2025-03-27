@@ -40,10 +40,10 @@ ILST_THRESHOLD = 0.06
 
 THRESHOLD_POLICIES = (
     ("Sensitivity", 0.9),
-    ("Sensitivity", 1.0),
+    # ("Sensitivity", 1.0),
     ("Specificity", 0.9),
-    ("Specificity", 1.0),
-    ("Youden J", 1.0),  ## Max J statistic
+    # ("Specificity", 1.0),
+    # ("Youden J", 1.0),  ## Max J statistic
 )
 
 DLCST_DEMOCOLS = {

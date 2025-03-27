@@ -315,6 +315,13 @@ def catinfo(df, cat, include_all=False):
     return df_catinfo
 
 
+def democols_to_list(democols):
+    cols_num = sum(democols["num"].values(), start=[])
+    cols_cat = sum(democols["cat"].values(), start=[])
+    cols_list = cols_num + cols_cat
+    return cols_list
+
+
 def prep_nlst_preds(
     df,
     democols=None,
@@ -363,7 +370,7 @@ def prep_nlst_preds(
         ]
         # Not including Sybil here because it's already scan-level of course.
 
-        df = df.drop(nodule_drop_cols, axis=1)
+        df = df.drop(nodule_drop_cols, axis=1, errors="ignore")
         dfgb = df.groupby("SeriesInstanceUID")
 
         for c in nodule_agg_cols + model_cols:
