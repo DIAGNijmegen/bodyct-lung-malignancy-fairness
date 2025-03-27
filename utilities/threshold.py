@@ -315,11 +315,6 @@ def plot_threshold_stats_subgroups(
     stats=None,
     show_mb_count=True,
 ):
-    # df_catinfo = catinfo(df, cat)
-    # if len(df_catinfo) == 0:
-    #     return None
-    # display(df_catinfo)
-
     if diff:
         show_all = False
     if show_all:
@@ -378,23 +373,25 @@ def plot_threshold_stats_subgroups(
 
     color_palette = sns.color_palette("colorblind", len(models))
     for j, p in enumerate(list(policies.columns)):
-        # print(p)
+        print("Policy:", p)
         for i, s in enumerate(plot_metrics):
-            # print(s)
+            print("Metric:", s)
             x = np.arange(len(subgroups))  # the label locations
             width = 0.12  # the width of the bars
             multiplier = 0
 
             for k, m in enumerate(models):
-                # print(m, f'(policy == "{p}") & (model == "{m}")')
+                print(m, f'(policy == "{p}") & (model == "{m}")')
                 # display(stats)
                 modelstats = stats.query(f'(policy == "{p}") & (model == "{m}")')
-                # print(len(modelstats))
+                print(len(modelstats))
                 scores, ci_lo, ci_hi, labels = [], [], [], []
 
                 for g in subgroups:
-                    # print(g)
-                    # print(modelstats[modelstats["group"] == g])
+                    print("Subgroup:", g)
+                    display(
+                        modelstats[modelstats["group"] == g][[s, f"{s}_lo", f"{s}_hi"]]
+                    )
                     subgroup_stats = modelstats[modelstats["group"] == g].iloc[0]
 
                     if diff:
@@ -404,8 +401,12 @@ def plot_threshold_stats_subgroups(
                         scores.append(subgroup_stats[s])
 
                     if bootstrap_ci:
-                        ci_lo.append(subgroup_stats[s] - subgroup_stats[f"{s}_lo"])
-                        ci_hi.append(subgroup_stats[f"{s}_hi"] - subgroup_stats[s])
+                        ci_lo.append(
+                            max(subgroup_stats[s] - subgroup_stats[f"{s}_lo"], 0)
+                        )
+                        ci_hi.append(
+                            max(subgroup_stats[f"{s}_hi"] - subgroup_stats[s], 0)
+                        )
                     else:
                         ci_lo.append(None)
                         ci_hi.append(None)
@@ -644,6 +645,8 @@ def save_results_isolate_confounders(
             for sval, sdf in splits:
                 if plot:
                     display(Markdown(f"#### {demographic}: {attribute} = {sval}"))
+                    df_catinfo = catinfo(sdf, demographic)
+                    display(df_catinfo)
 
                 analysis_func = (
                     plot_threshold_stats_subgroups
