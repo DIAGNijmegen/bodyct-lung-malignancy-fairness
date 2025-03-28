@@ -236,6 +236,9 @@ def calc_threshold_stats_subgroups(
     num_bootstraps=100,
     bootstrap_sample_size=None,
 ):
+    if len(df.dropna(axis=0, subset=[cat])) == 0:
+        return None
+
     stat_dfs = []
     ## If we want to include the overall result for comparison.
     if include_all:
@@ -373,25 +376,25 @@ def plot_threshold_stats_subgroups(
 
     color_palette = sns.color_palette("colorblind", len(models))
     for j, p in enumerate(list(policies.columns)):
-        print("Policy:", p)
+        # print("Policy:", p)
         for i, s in enumerate(plot_metrics):
-            print("Metric:", s)
+            # print("Metric:", s)
             x = np.arange(len(subgroups))  # the label locations
             width = 0.12  # the width of the bars
             multiplier = 0
 
             for k, m in enumerate(models):
-                print(m, f'(policy == "{p}") & (model == "{m}")')
+                # print(m, f'(policy == "{p}") & (model == "{m}")')
                 # display(stats)
                 modelstats = stats.query(f'(policy == "{p}") & (model == "{m}")')
-                print(len(modelstats))
+                # print(len(modelstats))
                 scores, ci_lo, ci_hi, labels = [], [], [], []
 
                 for g in subgroups:
-                    print("Subgroup:", g)
-                    display(
-                        modelstats[modelstats["group"] == g][[s, f"{s}_lo", f"{s}_hi"]]
-                    )
+                    # print("Subgroup:", g)
+                    # display(
+                    #     modelstats[modelstats["group"] == g][[s, f"{s}_lo", f"{s}_hi"]]
+                    # )
                     subgroup_stats = modelstats[modelstats["group"] == g].iloc[0]
 
                     if diff:
@@ -592,7 +595,7 @@ def all_results_subgroups_models(
         all_perfs = pd.concat(category_perfs, axis=0)
 
         if csvpath is not None:
-            all_perfs.to_csv(f"{csvpath}.csv")
+            all_perfs.to_csv(csvpath)
     else:
         all_perfs = None
 
