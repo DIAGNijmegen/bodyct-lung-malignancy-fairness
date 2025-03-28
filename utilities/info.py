@@ -11,6 +11,16 @@ from sklearn.utils import resample
 import warnings
 from IPython.display import display, Markdown
 
+## directory where results are
+CHANSEY_ROOT = "W:"
+EXPERIMENT_DIR = f"{CHANSEY_ROOT}/experiments/lung-malignancy-fairness-shaurya"
+TEAMS_DIR = "C:/Users/shaur/OneDrive - Radboudumc/Documents - Master - Shaurya Gaur/General/Malignancy-Estimation Results"
+
+FILE_DIR = f"{TEAMS_DIR}/files"
+RESULTS_DIR = f"{TEAMS_DIR}/fairness-analysis-results"
+FIG_DIR = f"{TEAMS_DIR}/figs"
+TAB_DIR = f"{TEAMS_DIR}/tables"
+
 ## Plot settings (adapted from Kiran and Thijmen's repos)
 sns.set_style("white")
 sns.set_theme(
@@ -51,22 +61,15 @@ DLCST_DEMOCOLS = {
     "num": {"demo": ["Age"], "other": ["NoduleCountPerScan"]},
 }
 
-## directory where results are
-CHANSEY_ROOT = "W:"
-EXPERIMENT_DIR = f"{CHANSEY_ROOT}/experiments/lung-malignancy-fairness-shaurya"
-
-TEAMS_DIR = "C:/Users/shaur/OneDrive - Radboudumc/Documents - Master - Shaurya Gaur/General/Malignancy-Estimation Results"
-
-NLST_PREDS = f"{TEAMS_DIR}/nlst"
-RESULTS_DIR = f"{TEAMS_DIR}/fairness-analysis-results"
-FIG_DIR = f"{TEAMS_DIR}/figs"
-TAB_DIR = f"{TEAMS_DIR}/tables"
-
 NLST_POSSIBLE_CONFOUNDERS = {
     "num": {
         "demo": ["BMI", "Age", "height", "weight"],
         "smoke": ["smokeage", "smokeday", "smokeyr", "pkyr"],
-        "other": ["NoduleCounts", "Diameter_mm", "SliceCount"],
+        "other": [
+            "NoduleCounts",
+            "Diameter_mm",
+            # "SliceCount"
+        ],
     },
     "cat": {
         "demo": [

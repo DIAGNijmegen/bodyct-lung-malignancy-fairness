@@ -1,4 +1,4 @@
-# Fairness of Malignancy Risk Estimation Models
+# Fairness Evaluation of Malignancy Risk Estimation Models for Lung Cancer Screening
 *Shaurya Gaur | MSc Thesis | Sep 2024 - Apr 2025*
 
 This repository investigates the biases of the below risk estimation models. The main examinations are the ROC curve and threshold-based metrics (true/false positive/negative rates, etc.). However, code exploring score distributions, linear regressions, calibration curve disparities, and precision-recall curves (PRC) is also inlcluded. We evaluate on the NLST and DLCST datasets.
@@ -13,44 +13,44 @@ We evaluate the following risk estimation models:
 
 * PanCan2b (Brock Malignancy Calculator): included in [DIAGNijmegen/bodyct-common](https://github.com/DIAGNijmegen/bodyct-common/blob/master/clinical_models/BrockMalignancyCalculator.py)
 
+## Process
+
+The pipeline follows these steps, which are outlined in the files here.
+
+1. **Load predictions** (`collect_preds.ipynb`): This performs the following steps.
+
+    - Load DLCST predictions for all 4 models (collected already).
+    - Calibrate DLCST predictions for Venkadesh21 and De Haas models using Platt's scaling.
+    - Load Venkadesh21 and PanCan2b NLST predictions (requires one spreadsheet for both).
+    - Calibrate the Venkadesh21 model's NLST predictions using Platt's scaling.
+    - Load and calibrate NLST predictions from De Haas models (provided in directories).
+    - Merge predictions together into one sheet. 
+    - Load Sybil split data and determine which series are appropriate to collect validation predictions.
+    - Load Sybil's inference on those validation series (in Sybil repo) and merge.
+
+2. **Load demographics** (`collect_demos.ipynb`): Take in a NLST participant dictionary, and collect demographic and confounder information to add to the dataset of predictions.
+
+3. **Subgroup Performance Analysis** (`save_subgroup_analysis.ipynb`): Run and save results from subgroup performance analysis. This collects AUC scores and threshold-based metrics (sensitivity, specificity, etc.) for the demographics and confounders collected above. It does this on the DLCST scan-level set and the NLST scan- and nodule-level sets for all of the models and the partial set for the De Haas Combined model.
+
+4. **Tables for Results and Appendix** (`thesis_tables.ipynb`): This makes the relevant tables for the results collected so far. Also includes tables for the confounder analysis (below). Here, we can easily also create ROC and threshold plots for the figures of results we want to see more closely.
+
+5. **Save Confounder Analysis** (`save_confounder_analysis.ipynb`): Based on the results, collect performance results for select demographic groups, isolating for other characteristics (potential confounders).
+
 ## Overview of Files
 
-In the main directory, Jupyter (`.ipynb`) notebooks evaluations start with the following naming scheme: `METRIC_DATASET_CTTYPE`. 
+The following files are required (in the `FILE_DIR` directory as labeled in `utilities/info.py`).
 
-* Metrics: `roc`, `thresholds`, `scoredists`, `linreg`, `prc`, `calibrationdiffs`
-* Datasets: `nlst` or `dlcst`
-* CT Type: `nodules` or `scans`
+- Venkadesh21 and PanCan predictions: `NLST_DL_vs_PanCan_Venk21.csv`.
+- De Haas prediction directories: `NLST_Tijmen_results`, `Tijmen_Local_NLST`, `Tijmen-Global-Hidden-NLST`, `Tijmen-Global-ShowNodule-NLST`
+- DLCST predictions: `dlcst_allmodels.csv`
+- Sybil PatientID to Split information: `sybil-nlst-pid_tp_series2split.p`
+- Sybil Inferences: `sybil-inference-1172.csv` and `sybil-inference-4739.csv` (Could run as one job as well.)
+- NLST Participant Dictionary: `participant_d040722.csv`
 
-After these fields, there are sometimes some other indicatiosn:
+Files for the NLST predictions merged, with and without demographic columns, are generated into `FILE_DIR`. 
 
-* `tijmen` indicates that with NLST the evaluation includes the De Haas combined model. This model's final linear layer was trained on a different validation split (and not like the cross-validation for the other De Haas and Venkadesh models), and so it can be only validated on a subset 20% of the size of the other validation set.
+Performance analysis results are found in a separate results directory (`RESULTS_DIR`, also in `utilities/info.py`).
 
-* `confound_DEMOGRAPHIC`: we see if the performance disparity of that demographic persists when isolating for confounders.
-
-There are also other files.
-
-* `false_MODEL_DATASET`: analyzing false positives and false negatives from a particular model on a particular dataset.
-
-* `save_all_results`: saving results which are plotted in other files to CSV and inspecting them.
-
-* `thesis_tables`: make tables using nice labels for the whole thesis evaluation.
-
-* `calibrate_preds`: Apply calibrations to the Venkadesh and De Haas models. Sybil and PanCan2b are already calibrated.
-
-## Subdirectories
-
-Here's what the subfolders contain.
-
-* `utilities`: Common functions and constants for the other files.
-
-* `slicecount`: Extract slice counts from series in NLST for analysis.
-
-* `mhatodicom`: Convert MHA to DICOM for Sybil predictions.
-
-* `transform_attentions`: Perform file conversions for Sybil attention visualizations.
-
-* `nlst`: Various notebooks grabbing information from NLST data. This includes predictions, demographics, and analyzing demographics and clinical confounders.
-
-
+The `thesis_tables.ipynb` file will generate tables into `TAB_DIR` and figures into `FIG_DIR` (for drag-drop into Overleaf).
 
 
