@@ -91,7 +91,7 @@ def pretty_interval(row, precision, group_num=1, metric="AUC"):
 
 DLCST_MODELCOLS = {
     "Venkadesh": "Ensemble_Kiran_cal",
-    "De Haas Combined": "thijmen_mean_cal",
+    # "De Haas Combined": "thijmen_mean_cal",
     "PanCan2b": "PanCan2b",
     "Sybil (Year 1)": "sybil_year1",
 }
@@ -107,8 +107,8 @@ NLST_1172_MODELCOLS = {
 
 NLST_5911_MODELCOLS = {
     "Venkadesh": "DL_cal",
-    "De Haas Local": "Thijmen_local_cal",
-    "De Haas Global": "Thijmen_global_hidden_cal",
+    # "De Haas Local": "Thijmen_local_cal",
+    # "De Haas Global": "Thijmen_global_hidden_cal",
     "Sybil (Year 1)": "sybil_year1",
     "PanCan2b": "PanCan2b",
 }
