@@ -290,7 +290,7 @@ def plot_rocs_subgroups(
     p=None,
     two_subgroups=False,
     dataset_name="NLST Scans",
-    figheight=5,
+    figheight=5.5,
     true_col="label",
     ci_to_use=0.95,
     num_bootstraps=100,
@@ -451,7 +451,7 @@ def plot_rocs_isolate_confounder(
     confounder,
     models=MODEL_TO_COL,
     dataset_name="NLST Scans",
-    figheight=5,
+    figheight=5.5,
     true_col="label",
     ci_to_use=0.95,
     num_bootstraps=100,
@@ -465,6 +465,10 @@ def plot_rocs_isolate_confounder(
         squeeze=False,
     )
     bintables = []
+
+    is_boolean_col = False
+    if confounder in boolean_cols or confounder in pretty_boolean_cols:
+        is_boolean_col = True
 
     for i, (subset_name, subset_df) in enumerate(subsets):
         roc, auc, z, p = calc_rocs_subgroups_models(
@@ -488,6 +492,12 @@ def plot_rocs_isolate_confounder(
 
         for j, m in enumerate(models):
             title_str = f"{m} Split by {cat}\n{dataset_name}, {confounder}: {subset_name} (n={len(subset_df)})"
+
+            if is_boolean_col:
+                if str(subset_name).lower() in ["1", "1.0", "true"]:
+                    title_str = f"{m} Split by {cat}\n{dataset_name}, {confounder} (n={len(subset_df)})"
+                elif str(subset_name).lower() in ["0", "0.0", "false"]:
+                    title_str = f"{m} Split by {cat}\n{dataset_name}, No {confounder} (n={len(subset_df)})"
 
             if two_subgroups:
                 z_show = z[m].loc[top2_groups[0], top2_groups[1]]
