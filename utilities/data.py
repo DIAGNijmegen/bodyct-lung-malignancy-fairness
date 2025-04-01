@@ -296,6 +296,8 @@ rename_cols = {
     "ManufacturersModelName": "Model Name",
 }
 
+pretty_boolean_cols = [rename_cols[c] for c in boolean_cols]
+
 
 ## Get prevalence info for a category in the dataset.
 def catinfo(df, cat, include_all=False):

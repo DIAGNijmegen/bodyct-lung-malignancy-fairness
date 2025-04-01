@@ -361,10 +361,8 @@ def plot_threshold_stats_subgroups(
 
     figheight = 1 + len(policies.columns) * 5
     figwidth = (
-        (len(models) * 0.7 + 0.5)
-        * (len(subgroups) + (1 if show_all else 0))
-        * len(plot_metrics)
-    )
+        0.5 + (len(models) * 0.7) * (len(subgroups) + (1 if show_all else 0))
+    ) * len(plot_metrics)
     fig, ax = plt.subplots(
         len(policies.columns),
         len(plot_metrics),
@@ -380,7 +378,7 @@ def plot_threshold_stats_subgroups(
         for i, s in enumerate(plot_metrics):
             # print("Metric:", s)
             x = np.arange(len(subgroups))  # the label locations
-            width = 0.12  # the width of the bars
+            width = 0.2  # the width of the bars
             multiplier = 0
 
             for k, m in enumerate(models):
@@ -448,7 +446,7 @@ def plot_threshold_stats_subgroups(
 
     plt.tight_layout()
     if imgpath is not None:
-        plt.savefig(imgpath, dpi=300)
+        plt.savefig(imgpath, dpi=300, bbox_inches="tight")
     plt.show()
 
     return stats
