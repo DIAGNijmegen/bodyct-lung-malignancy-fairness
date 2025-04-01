@@ -97,12 +97,12 @@ DLCST_MODELCOLS = {
 }
 
 NLST_1172_MODELCOLS = {
-    # "Venkadesh": "DL_cal",
+    "Venkadesh": "DL_cal",
     "De Haas Combined": "Thijmen_mean_cal",
     "De Haas Local": "Thijmen_local_cal",
     "De Haas Global": "Thijmen_global_hidden_cal",
-    # "Sybil (Year 1)": "sybil_year1",
-    # "PanCan2b": "PanCan2b",
+    "Sybil (Year 1)": "sybil_year1",
+    "PanCan2b": "PanCan2b",
 }
 
 NLST_5911_MODELCOLS = {
