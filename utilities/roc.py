@@ -487,7 +487,7 @@ def plot_rocs_isolate_confounder(
             roc = new_roc
 
         for j, m in enumerate(models):
-            title_str = f"{m} Split by {cat}\n{dataset_name}, {confounder}: {subset_name} (n={len(df)})"
+            title_str = f"{m} Split by {cat}\n{dataset_name}, {confounder}: {subset_name} (n={len(subset_df)})"
 
             if two_subgroups:
                 z_show = z[m].loc[top2_groups[0], top2_groups[1]]
