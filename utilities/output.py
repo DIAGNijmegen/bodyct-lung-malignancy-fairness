@@ -21,8 +21,8 @@ from . import threshold
 TABLE_SCORE_PRECISION = 2
 
 COL_TO_MODEL = {
-    "DL_cal": "Venkadesh",
-    "Ensemble_Kiran_cal": "Venkadesh",  ## DLCST
+    "DL_cal": "Venkadesh21",
+    "Ensemble_Kiran_cal": "Venkadesh21",  ## DLCST
     "thijmen_mean_cal": "De Haas Combined",  ## DLCST
     "Thijmen_mean_cal": "De Haas Combined",
     "Thijmen_local_cal": "De Haas Local",
@@ -90,14 +90,14 @@ def pretty_interval(row, precision, group_num=1, metric="AUC"):
 
 
 DLCST_MODELCOLS = {
-    "Venkadesh": "Ensemble_Kiran_cal",
+    "Venkadesh21": "Ensemble_Kiran_cal",
     # "De Haas Combined": "thijmen_mean_cal",
     "PanCan2b": "PanCan2b",
     "Sybil (Year 1)": "sybil_year1",
 }
 
 NLST_1172_MODELCOLS = {
-    # "Venkadesh": "DL_cal",
+    # "Venkadesh21": "DL_cal",
     "De Haas Combined": "Thijmen_mean_cal",
     "De Haas Local": "Thijmen_local_cal",
     "De Haas Global": "Thijmen_global_hidden_cal",
@@ -106,7 +106,7 @@ NLST_1172_MODELCOLS = {
 }
 
 NLST_5911_MODELCOLS = {
-    "Venkadesh": "DL_cal",
+    "Venkadesh21": "DL_cal",
     # "De Haas Local": "Thijmen_local_cal",
     # "De Haas Global": "Thijmen_global_hidden_cal",
     "Sybil (Year 1)": "sybil_year1",
@@ -120,7 +120,7 @@ RENAME_POLICIES = {
 }
 
 RENAME_MODELS = {
-    "Venkadesh": "Venkadesh",
+    "Venkadesh": "Venkadesh21",
     "de Haas": "De Haas Combined",
     "de Haas Combined": "De Haas Combined",
     "Sybil year 1": "Sybil (Year 1)",
