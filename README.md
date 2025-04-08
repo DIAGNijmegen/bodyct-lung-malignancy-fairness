@@ -1,11 +1,14 @@
 # Fairness Evaluation of Malignancy Risk Estimation Models for Lung Cancer Screening
-*Shaurya Gaur | MSc Thesis | Sep 2024 - Apr 2025*
+
+Shaurya Gaur, Fennie van der Graaf, Lena Philipp, Michel Vitale, Alessa Hering, Colin Jacobs
+
+*FAIMI Special Issue 2025, MELBA Journal*
 
 This repository investigates the biases of the below risk estimation models. The main examinations are the ROC curve and threshold-based metrics (true/false positive/negative rates, etc.). However, code exploring score distributions, linear regressions, calibration curve disparities, and precision-recall curves (PRC) is also inlcluded. We evaluate on the NLST and DLCST datasets.
 
 We evaluate the following risk estimation models:
 
-* Venkadesh21 (aka "Kiran's Model"): [DIAGNijmegen/bodyct-nodule-malignancy](https://github.com/DIAGNijmegen/bodyct-nodule-malignancy)
+* Venkadesh21: [DIAGNijmegen/bodyct-nodule-malignancy](https://github.com/DIAGNijmegen/bodyct-nodule-malignancy)
 
 * Sybil (from [MIT Jameel Clinic](https://github.com/reginabarzilaygroup/Sybil)): [DIAGNijmegen/bodyct-sybil-lung-cancer-risk](https://github.com/DIAGNijmegen/bodyct-sybil-lung-cancer-risk)
 
