@@ -7,8 +7,6 @@ We evaluate the following risk estimation models:
 
 * Venkadesh21 (aka "Kiran's Model"): [DIAGNijmegen/bodyct-nodule-malignancy](https://github.com/DIAGNijmegen/bodyct-nodule-malignancy)
 
-* De Haas Models (aka "Tijmen's Model"): [DIAGNijmegen/bodyct-lung-malignancy](https://github.com/DIAGNijmegen/bodyct-lung-malignancy)
-
 * Sybil (from [MIT Jameel Clinic](https://github.com/reginabarzilaygroup/Sybil)): [DIAGNijmegen/bodyct-sybil-lung-cancer-risk](https://github.com/DIAGNijmegen/bodyct-sybil-lung-cancer-risk)
 
 * PanCan2b (Brock Malignancy Calculator): included in [DIAGNijmegen/bodyct-common](https://github.com/DIAGNijmegen/bodyct-common/blob/master/clinical_models/BrockMalignancyCalculator.py)
@@ -19,11 +17,10 @@ The pipeline follows these steps, which are outlined in the files here.
 
 1. **Load predictions** (`collect_preds.ipynb`): This performs the following steps.
 
-    - Load DLCST predictions for all 4 models (collected already).
-    - Calibrate DLCST predictions for Venkadesh21 and De Haas models using Platt's scaling.
+    - Load DLCST predictions for all models (collected already).
+    - Calibrate DLCST predictions for Venkadesh21 model using Platt's scaling.
     - Load Venkadesh21 and PanCan2b NLST predictions (requires one spreadsheet for both).
     - Calibrate the Venkadesh21 model's NLST predictions using Platt's scaling.
-    - Load and calibrate NLST predictions from De Haas models (provided in directories).
     - Merge predictions together into one sheet. 
     - Load Sybil split data and determine which series are appropriate to collect validation predictions.
     - Load Sybil's inference on those validation series (in Sybil repo) and merge.
@@ -41,7 +38,6 @@ The pipeline follows these steps, which are outlined in the files here.
 The following files are required (in the `FILE_DIR` directory as labeled in `utilities/info.py`).
 
 - Venkadesh21 and PanCan predictions: `NLST_DL_vs_PanCan_Venk21.csv`.
-- De Haas prediction directories: `NLST_Tijmen_results`, `Tijmen_Local_NLST`, `Tijmen-Global-Hidden-NLST`, `Tijmen-Global-ShowNodule-NLST`
 - DLCST predictions: `dlcst_allmodels.csv`
 - Sybil PatientID to Split information: `sybil-nlst-pid_tp_series2split.p`
 - Sybil Inferences: `sybil-inference-1172.csv` and `sybil-inference-4739.csv` (Could run as one job as well.)
