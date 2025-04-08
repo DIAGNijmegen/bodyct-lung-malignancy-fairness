@@ -16,10 +16,10 @@ CHANSEY_ROOT = "/data/bodyct"  ## or "W:"
 EXPERIMENT_DIR = f"{CHANSEY_ROOT}/experiments/lung-malignancy-fairness-shaurya"
 TEAMS_DIR = "C:/Users/shaur/OneDrive - Radboudumc/Documents - Master - Shaurya Gaur/General/Malignancy-Estimation Results"
 
-FILE_DIR = f"{TEAMS_DIR}/files"
-RESULTS_DIR = f"{TEAMS_DIR}/fairness-analysis-results"
-FIG_DIR = f"{TEAMS_DIR}/figs"
-TAB_DIR = f"{TEAMS_DIR}/tables"
+FILE_DIR = f"{EXPERIMENT_DIR}/files"
+RESULTS_DIR = f"{EXPERIMENT_DIR}/fairness-analysis-results"
+FIG_DIR = f"{EXPERIMENT_DIR}/figs"
+TAB_DIR = f"{EXPERIMENT_DIR}/tables"
 
 ## Plot settings (adapted from Kiran and Thijmen's repos)
 sns.set_style("white")
