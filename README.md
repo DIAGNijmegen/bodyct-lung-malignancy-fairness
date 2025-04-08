@@ -30,7 +30,7 @@ The pipeline follows these steps, which are outlined in the files here.
 
 2. **Load demographics** (`collect_demos.ipynb`): Take in a NLST participant dictionary, and collect demographic and confounder information to add to the dataset of predictions.
 
-3. **Subgroup Performance Analysis** (`save_subgroup_analysis.ipynb`): Run and save results from subgroup performance analysis. This collects AUC scores and threshold-based metrics (sensitivity, specificity, etc.) for the demographics and confounders collected above. It does this on the DLCST scan-level set and the NLST scan- and nodule-level sets for all of the models and the partial set for the De Haas Combined model.
+3. **Subgroup Performance Analysis** (`save_subgroup_analysis.ipynb`): Run and save results from subgroup performance analysis. This collects AUC scores and threshold-based metrics (sensitivity, specificity, etc.) for the demographics and confounders collected above. It does this on the DLCST scan-level set and the NLST scan- and nodule-level sets for all of the models.
 
 4. **Tables for Results and Appendix** (`thesis_tables.ipynb`): This makes the relevant tables for the results collected so far. Also includes tables for the confounder analysis (below). Here, we can easily also create ROC and threshold plots for the figures of results we want to see more closely.
 
