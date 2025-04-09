@@ -190,7 +190,12 @@ def roc_results_pretty(df, model_order_0, precision=TABLE_SCORE_PRECISION):
     return df_out
 
 
-RENAME_METRICS = {"fpr": "FPR", "fnr": "FNR", "tpr": "TPR", "tnr": "TNR"}
+RENAME_METRICS = {
+    "fpr": "FPR",
+    "fnr": "FNR",
+    "tpr": "Sensitivity",
+    "tnr": "Specificity",
+}
 
 RENAME_METRICS_hi = {f"{k}_hi": f"{v}_hi" for k, v in RENAME_METRICS.items()}
 RENAME_METRICS_lo = {f"{k}_lo": f"{v}_lo" for k, v in RENAME_METRICS.items()}
@@ -688,7 +693,10 @@ def threshold_isolation_pairwise(
     demo,
     model,
     policies,
-    metric_tuples=[("TPR", "90% Specificity"), ("TNR", "90% Sensitivity")],
+    metric_tuples=[
+        ("Sensitivity", "90% Specificity"),
+        ("Specificity", "90% Sensitivity"),
+    ],
     topn_confs=None,
     precision=TABLE_SCORE_PRECISION,
     pairwise_comps=None,

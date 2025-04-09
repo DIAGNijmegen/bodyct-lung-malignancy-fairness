@@ -431,7 +431,8 @@ def plot_threshold_stats_subgroups(
 
             # Add some text for labels, title and custom x-axis tick labels, etc.
             ax[j][i].set_ylabel(s)
-            ax[j][i].set_title(f"{dataset_name} (n={len(df)}) {s} by {cat} ({p})")
+            # ax[j][i].set_title(f"{dataset_name} (n={len(df)}) {s} by {cat} ({p})")
+            ax[j][i].set_title(f"{s} by {cat} ({p})")
             ax[j][i].set_xticks(x + width, labels)
             # ax[j][i].legend(loc='upper left', bbox_to_anchor=(1, 1))
 
