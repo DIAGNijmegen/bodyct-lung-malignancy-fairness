@@ -76,7 +76,7 @@ NLST_POSSIBLE_CONFOUNDERS = {
             "Age > 61",
             "Gender",
             "HighSchoolPlus",
-            "Married",
+            # "Married",
             "Overweight",
             "Unfinished_ed",
             "ethnic",
@@ -148,6 +148,7 @@ NLST_POSSIBLE_CONFOUNDERS = {
         "nodule": [
             "GroundGlassOpacity",
             "NoduleInUpperLung",
+            # "NoduleType",
             "Perifissural",
             "NonSolid",
             "Calcified",
