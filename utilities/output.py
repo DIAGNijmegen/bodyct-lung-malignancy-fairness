@@ -149,7 +149,7 @@ def roc_results_pretty(df, model_order_0, precision=TABLE_SCORE_PRECISION):
     ].rename(
         columns={
             "Group_1": "Group",
-            "Group_1_AUC": "ROC AUC",
+            "Group_1_AUC": "AUROC",
             "Group_1_mal": "Malignant Scans",
         }
     )
@@ -158,7 +158,7 @@ def roc_results_pretty(df, model_order_0, precision=TABLE_SCORE_PRECISION):
     ].rename(
         columns={
             "Group_2": "Group",
-            "Group_2_AUC": "ROC AUC",
+            "Group_2_AUC": "AUROC",
             "Group_2_mal": "Malignant Scans",
         }
     )
@@ -180,7 +180,7 @@ def roc_results_pretty(df, model_order_0, precision=TABLE_SCORE_PRECISION):
         pd.MultiIndex.from_frame(df_res[["Category", "Attribute", "Group"]])
     )
 
-    model_results = {m: dfm[["ROC AUC", "p"]] for m, dfm in df_res.groupby("model")}
+    model_results = {m: dfm[["AUROC", "p"]] for m, dfm in df_res.groupby("model")}
     df_out = pd.concat(model_results, axis=1)
     df_out["Malignant Scans"] = df_res["Malignant Scans"].drop_duplicates()
     df_out = df_out.sort_values(by="Malignant Scans", ascending=False)
@@ -562,7 +562,7 @@ def roc_isolations_pretty(df0, attribute, model, precision=TABLE_SCORE_PRECISION
 
     ## Group 1 and Group 2 don't necessarily always align. We need to realign them.
     # cols_to_realign = ['mal', 'ben', 'pct', 'pct_mal', 'AUC']
-    cols_to_realign = {"AUC": "ROC AUC"}
+    cols_to_realign = {"AUC": "AUROC"}
 
     def realign_group_num(row, subgroup, col="AUC"):
         if row["Group_1"] == subgroup:
@@ -619,7 +619,7 @@ def prevalence_plus_isolated_roc(
         set(list(pd.unique(results["Group_1"])) + list(pd.unique(results["Group_2"])))
     )
     subgroups_pretty = [prettify_result_val(attribute, sg)[1] for sg in subgroups]
-    subcols_to_align = ["Mal", "Ben", "Total %", "ROC AUC"]
+    subcols_to_align = ["Mal", "Ben", "Total %", "AUROC"]
 
     combined_df = combined_df[
         list(itertools.product(subgroups_pretty, subcols_to_align)) + [("p", "")]
