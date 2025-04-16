@@ -205,7 +205,12 @@ def threshold_stats_pretty(df, policies, demographic_for_isolations=None):
     policies.rename(columns=RENAME_POLICIES, inplace=True)
     df["policy"] = df["policy"].replace(RENAME_POLICIES)
     df["model"] = df.apply(lambda row: COL_TO_MODEL[row["col"]], axis=1)
-    df["category"] = df.apply(lambda row: data.rename_types[row["category"]], axis=1)
+    if df["category"].iloc[0] in data.rename_types.keys():
+        df["category"] = df.apply(
+            lambda row: data.rename_types[row["category"]], axis=1
+        )
+    else:
+        return df, policies
 
     if demographic_for_isolations is None:
         df["attribute2"] = df.apply(
