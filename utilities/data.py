@@ -191,7 +191,7 @@ rename_types = {
 
 rename_cols = {
     ### DLCST
-    "Sex": "Gender",
+    "Sex": "Sex",
     "NoduleCountPerScan": "Nodules Per Scan",
     ### NLST
     "BMI": "Body Mass Index",
@@ -211,7 +211,7 @@ rename_cols = {
     "SliceCount": "Slices In Scan",
     "Overweight": "BMI",
     "educat": "Education Status",
-    "Gender": "Gender",
+    "Gender": "Sex",
     "Married": "Married",
     "HighSchoolPlus": "HS Education",
     "NonHispanicWhite": "Non-Hispanic White",
