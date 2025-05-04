@@ -21,8 +21,8 @@ from . import threshold
 TABLE_SCORE_PRECISION = 2
 
 COL_TO_MODEL = {
-    "DL_cal": "Venkadesh",
-    "Ensemble_Kiran_cal": "Venkadesh",  ## DLCST
+    "DL_cal": "Venkadesh21",
+    "Ensemble_Kiran_cal": "Venkadesh21",  ## DLCST
     "thijmen_mean_cal": "De Haas Combined",  ## DLCST
     "Thijmen_mean_cal": "De Haas Combined",
     "Thijmen_local_cal": "De Haas Local",
@@ -90,14 +90,14 @@ def pretty_interval(row, precision, group_num=1, metric="AUC"):
 
 
 DLCST_MODELCOLS = {
-    "Venkadesh": "Ensemble_Kiran_cal",
+    "Venkadesh21": "Ensemble_Kiran_cal",
     "De Haas Combined": "thijmen_mean_cal",
     "PanCan2b": "PanCan2b",
     "Sybil (Year 1)": "sybil_year1",
 }
 
 NLST_1172_MODELCOLS = {
-    "Venkadesh": "DL_cal",
+    "Venkadesh21": "DL_cal",
     "De Haas Combined": "Thijmen_mean_cal",
     "De Haas Local": "Thijmen_local_cal",
     "De Haas Global": "Thijmen_global_hidden_cal",
@@ -106,7 +106,7 @@ NLST_1172_MODELCOLS = {
 }
 
 NLST_5911_MODELCOLS = {
-    "Venkadesh": "DL_cal",
+    "Venkadesh21": "DL_cal",
     "De Haas Local": "Thijmen_local_cal",
     "De Haas Global": "Thijmen_global_hidden_cal",
     "Sybil (Year 1)": "sybil_year1",
@@ -120,7 +120,7 @@ RENAME_POLICIES = {
 }
 
 RENAME_MODELS = {
-    "Venkadesh": "Venkadesh",
+    "Venkadesh": "Venkadesh21",
     "de Haas": "De Haas Combined",
     "de Haas Combined": "De Haas Combined",
     "Sybil year 1": "Sybil (Year 1)",
@@ -149,7 +149,7 @@ def roc_results_pretty(df, model_order_0, precision=TABLE_SCORE_PRECISION):
     ].rename(
         columns={
             "Group_1": "Group",
-            "Group_1_AUC": "ROC AUC",
+            "Group_1_AUC": "AUROC",
             "Group_1_mal": "Malignant Scans",
         }
     )
@@ -158,7 +158,7 @@ def roc_results_pretty(df, model_order_0, precision=TABLE_SCORE_PRECISION):
     ].rename(
         columns={
             "Group_2": "Group",
-            "Group_2_AUC": "ROC AUC",
+            "Group_2_AUC": "AUROC",
             "Group_2_mal": "Malignant Scans",
         }
     )
@@ -180,7 +180,7 @@ def roc_results_pretty(df, model_order_0, precision=TABLE_SCORE_PRECISION):
         pd.MultiIndex.from_frame(df_res[["Category", "Attribute", "Group"]])
     )
 
-    model_results = {m: dfm[["ROC AUC", "p"]] for m, dfm in df_res.groupby("model")}
+    model_results = {m: dfm[["AUROC", "p"]] for m, dfm in df_res.groupby("model")}
     df_out = pd.concat(model_results, axis=1)
     df_out["Malignant Scans"] = df_res["Malignant Scans"].drop_duplicates()
     df_out = df_out.sort_values(by="Malignant Scans", ascending=False)
@@ -190,7 +190,12 @@ def roc_results_pretty(df, model_order_0, precision=TABLE_SCORE_PRECISION):
     return df_out
 
 
-RENAME_METRICS = {"fpr": "FPR", "fnr": "FNR", "tpr": "TPR", "tnr": "TNR"}
+RENAME_METRICS = {
+    "fpr": "FPR",
+    "fnr": "FNR",
+    "tpr": "Sensitivity",
+    "tnr": "Specificity",
+}
 
 RENAME_METRICS_hi = {f"{k}_hi": f"{v}_hi" for k, v in RENAME_METRICS.items()}
 RENAME_METRICS_lo = {f"{k}_lo": f"{v}_lo" for k, v in RENAME_METRICS.items()}
@@ -558,7 +563,7 @@ def roc_isolations_pretty(df0, attribute, model, precision=TABLE_SCORE_PRECISION
 
     ## Group 1 and Group 2 don't necessarily always align. We need to realign them.
     # cols_to_realign = ['mal', 'ben', 'pct', 'pct_mal', 'AUC']
-    cols_to_realign = {"AUC": "ROC AUC"}
+    cols_to_realign = {"AUC": "AUROC"}
 
     def realign_group_num(row, subgroup, col="AUC"):
         if row["Group_1"] == subgroup:
@@ -615,7 +620,7 @@ def prevalence_plus_isolated_roc(
         set(list(pd.unique(results["Group_1"])) + list(pd.unique(results["Group_2"])))
     )
     subgroups_pretty = [prettify_result_val(attribute, sg)[1] for sg in subgroups]
-    subcols_to_align = ["Mal", "Ben", "Total %", "ROC AUC"]
+    subcols_to_align = ["Mal", "Ben", "Total %", "AUROC"]
 
     combined_df = combined_df[
         list(itertools.product(subgroups_pretty, subcols_to_align)) + [("p", "")]
@@ -694,7 +699,10 @@ def threshold_isolation_pairwise(
     demo,
     model,
     policies,
-    metric_tuples=[("TPR", "90% Specificity"), ("TNR", "90% Sensitivity")],
+    metric_tuples=[
+        ("Sensitivity", "90% Specificity"),
+        ("Specificity", "90% Sensitivity"),
+    ],
     topn_confs=None,
     precision=TABLE_SCORE_PRECISION,
     pairwise_comps=None,

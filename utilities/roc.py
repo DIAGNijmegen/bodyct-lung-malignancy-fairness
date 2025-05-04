@@ -360,9 +360,9 @@ def plot_rocs_subgroups(
             p_show = p[m].loc[top2_groups[0], top2_groups[1]]
 
             if p_show < 0.001:
-                title_str += f" (z={z_show:.2f}, p<0.001)"
+                title_str += f" (p<0.001)"
             else:
-                title_str += f" (z={z_show:.2f}, p={truncate_p(p_show)})"
+                title_str += f" (p={truncate_p(p_show)})"
 
         ax_rocs(ax[i], roc[m], title=title_str, catinfo=None, plot_ci=True)
 
@@ -459,9 +459,9 @@ def plot_rocs_isolate_confounder(
 ):
     subsets = df.groupby(confounder)
     fig, ax = plt.subplots(
-        2,
         len(models),
-        figsize=(figheight * len(models), 2.2 * figheight),
+        2,
+        figsize=(2 * figheight, figheight * len(models)),
         squeeze=False,
     )
     bintables = []
@@ -495,20 +495,20 @@ def plot_rocs_isolate_confounder(
 
             if is_boolean_col:
                 if str(subset_name).lower() in ["1", "1.0", "true"]:
-                    title_str = f"{m} Split by {cat}\n{dataset_name}, {confounder} (n={len(subset_df)})"
+                    title_str = f"{dataset_name}, {confounder} (n={len(subset_df)})\n{m} Split by {cat}"
                 elif str(subset_name).lower() in ["0", "0.0", "false"]:
-                    title_str = f"{m} Split by {cat}\n{dataset_name}, No {confounder} (n={len(subset_df)})"
+                    title_str = f"{dataset_name}, No {confounder} (n={len(subset_df)})\n{m} Split by {cat}"
 
             if two_subgroups:
                 z_show = z[m].loc[top2_groups[0], top2_groups[1]]
                 p_show = p[m].loc[top2_groups[0], top2_groups[1]]
 
                 if p_show < 0.001:
-                    title_str += f"\n(z={z_show:.2f}, p<0.001)"
+                    title_str += f" (p<0.001)"
                 else:
-                    title_str += f"\n(z={z_show:.2f}, p={truncate_p(p_show)})"
+                    title_str += f" (p={truncate_p(p_show)})"
 
-            ax_rocs(ax[i][j], roc[m], title=title_str, catinfo=None, plot_ci=True)
+            ax_rocs(ax[j][i], roc[m], title=title_str, catinfo=None, plot_ci=True)
 
         if two_subgroups:
             bintable = binary_group_roc_table(auc, p, top2_groups, z)

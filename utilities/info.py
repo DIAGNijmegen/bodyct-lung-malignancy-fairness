@@ -78,7 +78,6 @@ NLST_POSSIBLE_CONFOUNDERS = {
             "HighSchoolPlus",
             # "Married",
             "Overweight",
-            "Unfinished_ed",
             "ethnic",
             "height > 68",
             "weight > 180",

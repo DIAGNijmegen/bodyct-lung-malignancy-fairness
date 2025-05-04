@@ -378,7 +378,7 @@ def plot_threshold_stats_subgroups(
         for i, s in enumerate(plot_metrics):
             # print("Metric:", s)
             x = np.arange(len(subgroups))  # the label locations
-            width = 1 / (1 + len(models))  # the width of the bars
+            width = 0.2  # the width of the bars
             multiplier = 0
 
             for k, m in enumerate(models):
@@ -431,7 +431,8 @@ def plot_threshold_stats_subgroups(
 
             # Add some text for labels, title and custom x-axis tick labels, etc.
             ax[j][i].set_ylabel(s)
-            ax[j][i].set_title(f"{dataset_name} (n={len(df)}) {s} by {cat} ({p})")
+            # ax[j][i].set_title(f"{dataset_name} (n={len(df)}) {s} by {cat} ({p})")
+            ax[j][i].set_title(f"{s} by {cat} ({p})")
             ax[j][i].set_xticks(x + width, labels)
             # ax[j][i].legend(loc='upper left', bbox_to_anchor=(1, 1))
 
