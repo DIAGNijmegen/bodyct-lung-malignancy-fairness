@@ -459,9 +459,9 @@ def plot_rocs_isolate_confounder(
 ):
     subsets = df.groupby(confounder)
     fig, ax = plt.subplots(
-        len(models),
         2,
-        figsize=(2 * figheight, figheight * len(models)),
+        len(models),
+        figsize=(figheight * len(models), 2 * figheight),
         squeeze=False,
     )
     bintables = []
@@ -508,7 +508,7 @@ def plot_rocs_isolate_confounder(
                 else:
                     title_str += f" (p={truncate_p(p_show)})"
 
-            ax_rocs(ax[j][i], roc[m], title=title_str, catinfo=None, plot_ci=True)
+            ax_rocs(ax[i][j], roc[m], title=title_str, catinfo=None, plot_ci=True)
 
         if two_subgroups:
             bintable = binary_group_roc_table(auc, p, top2_groups, z)
