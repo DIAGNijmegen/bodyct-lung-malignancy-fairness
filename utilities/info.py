@@ -14,12 +14,13 @@ from IPython.display import display, Markdown
 ## directory where results are
 CHANSEY_ROOT = "/data/bodyct"  ## or "W:"
 EXPERIMENT_DIR = f"{CHANSEY_ROOT}/experiments/lung-malignancy-fairness-shaurya"
-TEAMS_DIR = "C:/Users/shaur/OneDrive - Radboudumc/Documents - Master - Shaurya Gaur/General/Malignancy-Estimation Results"
+TEAMS_DIR = "C:/Users/shaur/OneDrive - Radboudumc/Documents - Master - Shaurya Gaur/General/Data"
 
+INPUT_DIR = f"{TEAMS_DIR}/inputs"
 FILE_DIR = f"{TEAMS_DIR}/files"
 RESULTS_DIR = f"{TEAMS_DIR}/results"
-FIG_DIR = f"{TEAMS_DIR}/figs"
-TAB_DIR = f"{TEAMS_DIR}/tables"
+FIG_DIR = f"{TEAMS_DIR}/thesis-figs"
+TAB_DIR = f"{TEAMS_DIR}/thesis-tables"
 
 ## Plot settings (adapted from Kiran and Thijmen's repos)
 sns.set_style("white")
