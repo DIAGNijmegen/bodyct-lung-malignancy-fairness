@@ -17,7 +17,7 @@ EXPERIMENT_DIR = f"{CHANSEY_ROOT}/experiments/lung-malignancy-fairness-shaurya"
 TEAMS_DIR = "C:/Users/shaur/OneDrive - Radboudumc/Documents - Master - Shaurya Gaur/General/Malignancy-Estimation Results"
 
 FILE_DIR = f"{TEAMS_DIR}/files"
-RESULTS_DIR = f"{TEAMS_DIR}/rerun-results"
+RESULTS_DIR = f"{TEAMS_DIR}/results"
 FIG_DIR = f"{TEAMS_DIR}/figs"
 TAB_DIR = f"{TEAMS_DIR}/tables"
 
