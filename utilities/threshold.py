@@ -378,7 +378,7 @@ def plot_threshold_stats_subgroups(
         for i, s in enumerate(plot_metrics):
             # print("Metric:", s)
             x = np.arange(len(subgroups))  # the label locations
-            width = 0.2  # the width of the bars
+            width = 1 / (len(models) + 1)  # the width of the bars
             multiplier = 0
 
             for k, m in enumerate(models):
