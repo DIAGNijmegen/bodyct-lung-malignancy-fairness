@@ -8,11 +8,11 @@ This repository investigates the biases of the below risk estimation models. The
 
 We evaluate the following risk estimation models:
 
-* Venkadesh21: [DIAGNijmegen/bodyct-nodule-malignancy](https://github.com/DIAGNijmegen/bodyct-nodule-malignancy)
+* Venkadesh21: [https://doi.org/10.1148/radiol.2021204433](https://doi.org/10.1148/radiol.2021204433)
 
-* Sybil (from [MIT Jameel Clinic](https://github.com/reginabarzilaygroup/Sybil)): [DIAGNijmegen/bodyct-sybil-lung-cancer-risk](https://github.com/DIAGNijmegen/bodyct-sybil-lung-cancer-risk)
+* Sybil (from MIT Jameel Clinic): [https://doi.org/10.1200/JCO.22.01345](https://doi.org/10.1200/JCO.22.01345)
 
-* PanCan2b (Brock Malignancy Calculator): included in [DIAGNijmegen/bodyct-common](https://github.com/DIAGNijmegen/bodyct-common/blob/master/clinical_models/BrockMalignancyCalculator.py)
+* PanCan2b (Brock Malignancy Calculator): [https://doi.org/10.1056/nejmoa1214726](https://doi.org/10.1056/nejmoa1214726)
 
 ## Process
 
@@ -28,11 +28,11 @@ The pipeline follows these steps, which are outlined in the files here.
 
 2. **Load demographics** (`collect_demos.ipynb`): Take in a NLST participant dictionary, and collect demographic and confounder information to add to the dataset of predictions.
 
-3. **Subgroup Performance Analysis** (`save_subgroup_analysis.ipynb`): Run and save results from subgroup performance analysis. This collects AUC scores and threshold-based metrics (sensitivity, specificity, etc.) for the demographics and confounders collected above. It does this on the NLST scan--level sets for all of the models.
-
-4. **Tables for Results and Appendix** (`thesis_tables.ipynb`): This makes the relevant tables for the results collected so far. Also includes tables for the confounder analysis (below). Here, we can easily also create ROC and threshold plots for the figures of results we want to see more closely.
+3. **Subgroup Performance Analysis** (`save_subgroup_analysis.ipynb`): Run and save results from subgroup performance analysis. This collects AUC scores and threshold-based metrics (sensitivity, specificity, etc.) for the demographics and confounders collected above. It does this on the NLST scan-level sets for all of the models.
 
 5. **Save Confounder Analysis** (`save_confounder_analysis.ipynb`): Based on the results, collect performance results for select demographic groups, isolating for other characteristics (potential confounders).
+
+4. **Tables for Results and Appendix** (`melba_tables.ipynb`): This makes the relevant tables for the results collected so far. Also includes tables for the confounder analysis. Here, we can easily also create ROC and threshold plots for the figures of results we want to see more closely.
 
 ## Overview of Files
 
@@ -47,6 +47,6 @@ Files for the NLST predictions merged, with and without demographic columns, are
 
 Performance analysis results are found in a separate results directory (`RESULTS_DIR`, also in `utilities/info.py`).
 
-The `thesis_tables.ipynb` file will generate tables into `TAB_DIR` and figures into `FIG_DIR` (for drag-drop into Overleaf).
+The `melba_tables.ipynb` file will generate tables into `TAB_DIR` and figures into `FIG_DIR` (for drag-drop into Overleaf).
 
 
