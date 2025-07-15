@@ -8,10 +8,12 @@ import time
 from pathlib import Path
 import multiprocessing
 
+
 def read_csv_series_instance_uids(csv_path):
     """Reads the CSV file and returns a list of SeriesInstanceUID values."""
     df = pd.read_csv(csv_path)
-    return pd.unique(df['SeriesInstanceUID']).tolist()
+    return pd.unique(df["SeriesInstanceUID"]).tolist()
+
 
 def write_slices(series_tag_values, new_img, out_dir, i, writer, spacing):
     try:
@@ -20,9 +22,7 @@ def write_slices(series_tag_values, new_img, out_dir, i, writer, spacing):
         # Tags shared by the series.
         list(
             map(
-                lambda tag_value: image_slice.SetMetaData(
-                    tag_value[0], tag_value[1]
-                ),
+                lambda tag_value: image_slice.SetMetaData(tag_value[0], tag_value[1]),
                 series_tag_values,
             )
         )
@@ -57,11 +57,13 @@ def write_slices(series_tag_values, new_img, out_dir, i, writer, spacing):
     except:
         print(f"ERROR: failed to write slice {i} in {out_dir}", file=sys.stderr)
 
+
 def check_all_slices_created(output_dir, depth):
     wanted_names = set([f"{i}.dcm" for i in range(depth)])
     actual_names = set(os.listdir(output_dir))
     name_diffs = set(wanted_names - actual_names)
-    return list(sorted([int(s.split('.')[0]) for s in name_diffs]))
+    return list(sorted([int(s.split(".")[0]) for s in name_diffs]))
+
 
 def mha_to_dicom(mha_file, output_dir, pixel_dtype=np.int16):
     try:
@@ -126,19 +128,24 @@ def mha_to_dicom(mha_file, output_dir, pixel_dtype=np.int16):
 
         list(
             map(
-                lambda i: write_slices(series_tag_values, mha_image, output_dir, i, writer, spacing),
+                lambda i: write_slices(
+                    series_tag_values, mha_image, output_dir, i, writer, spacing
+                ),
                 range(mha_image.GetDepth()),
             )
         )
 
         fail_slices = check_all_slices_created(output_dir, mha_image.GetDepth())
         if len(fail_slices) > 0:
-            print(f"ERROR: {output_dir} - slices missing: {fail_slices}", file=sys.stderr)
+            print(
+                f"ERROR: {output_dir} - slices missing: {fail_slices}", file=sys.stderr
+            )
             return False
         return True
     except:
         print(f"ERROR: {output_dir} - something went wrong :(", file=sys.stderr)
         return False
+
 
 def process_mha_file(mha_path, base_output_folder):
     subfolder_name = os.path.splitext(os.path.basename(mha_path))[0]
@@ -147,29 +154,36 @@ def process_mha_file(mha_path, base_output_folder):
         os.makedirs(output_subfolder)
     return output_subfolder
 
+
 def mha_dicom_process(i, total, series_instance_uid):
     src_dir = f"{root_dir}/experiments/0-{DATASET_NAME}-mha"
     output_folder_path = f"{DATA_DIR}/DICOM_files"
 
-    mha_filename = series_instance_uid + '.mha'
+    mha_filename = series_instance_uid + ".mha"
     mha_filepath = os.path.join(src_dir, mha_filename)
 
     print(f"{i+1} / {total}: starting to convert {series_instance_uid} ... ")
     if os.path.exists(mha_filepath):
         start = time.time()
-        
+
         output_subfolder = process_mha_file(mha_filepath, output_folder_path)
         success = mha_to_dicom(mha_filepath, output_subfolder)
-        
+
         end = time.time()
         if success:
-            print(f"{i+1} / {total}: SUCCESSfully converted {series_instance_uid} in {end - start} seconds")
-        if not success: 
-            print(f"{i+1} / {total}: Took {end - start} seconds but FAILED to convert {series_instance_uid}", file=sys.stderr)
+            print(
+                f"{i+1} / {total}: SUCCESSfully converted {series_instance_uid} in {end - start} seconds"
+            )
+        if not success:
+            print(
+                f"{i+1} / {total}: Took {end - start} seconds but FAILED to convert {series_instance_uid}",
+                file=sys.stderr,
+            )
     else:
         print(f"File {mha_filename} not found in the source directory.")
-    
+
     return
+
 
 if __name__ == "__main__":
     ## directory where results are
@@ -177,18 +191,26 @@ if __name__ == "__main__":
     LOCAL_PC = True
     root_dir = "/mnt/w" if LOCAL_PC else "/data/bodyct"
     EXPERIMENT_DIR = f"{root_dir}/experiments/lung-malignancy-fairness-shaurya"
-    DATA_DIR = f"{EXPERIMENT_DIR}/{DATASET_NAME}"
+    DATA_DIR = f"{EXPERIMENT_DIR}/files"
 
-    # csv_path = f"{DATA_DIR}/nlst_kiran_thijmen_pancan_16077.csv"
+    # csv_path = f"{DATA_DIR}/nlst_allmodels.csv"
     # series_instance_uids = read_csv_series_instance_uids(csv_path)
-    
+
     checkdf = pd.read_csv(f"{DATA_DIR}/mhatodicom_check.csv")
-    series_instance_uids = checkdf.query('mhaDicomConverted == False')['SeriesInstanceUID']
+    series_instance_uids = checkdf.query("mhaDicomConverted == False")[
+        "SeriesInstanceUID"
+    ]
 
     total_start = time.time()
     print(f"starting to read {len(series_instance_uids)} series instance uids")
     converterpool = multiprocessing.Pool()
-    converterpool.starmap(mha_dicom_process, 
-                      zip(range(len(series_instance_uids)), [len(series_instance_uids)] * len(series_instance_uids), series_instance_uids))
+    converterpool.starmap(
+        mha_dicom_process,
+        zip(
+            range(len(series_instance_uids)),
+            [len(series_instance_uids)] * len(series_instance_uids),
+            series_instance_uids,
+        ),
+    )
     total_end = time.time()
     print("total time:", total_end - total_start)

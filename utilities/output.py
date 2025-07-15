@@ -22,12 +22,6 @@ TABLE_SCORE_PRECISION = 2
 
 COL_TO_MODEL = {
     "DL_cal": "Venkadesh21",
-    "Ensemble_Kiran_cal": "Venkadesh21",  ## DLCST
-    "thijmen_mean_cal": "De Haas Combined",  ## DLCST
-    "Thijmen_mean_cal": "De Haas Combined",
-    "Thijmen_local_cal": "De Haas Local",
-    "Thijmen_global_hidden_cal": "De Haas Global",
-    "Thijmen_global_show_cal": "De Haas Global (Shown Nodule)",
     "sybil_year1": "Sybil (Year 1)",
     "PanCan2b": "PanCan2b",
 }
@@ -89,26 +83,8 @@ def pretty_interval(row, precision, group_num=1, metric="AUC"):
     return f"{row[f'{metric}_{group_num}']:.{precision}f} ({row[f'{metric}-CI-lo_{group_num}']:.{precision}f}, {row[f'{metric}-CI-hi_{group_num}']:.{precision}f})"
 
 
-DLCST_MODELCOLS = {
-    "Venkadesh21": "Ensemble_Kiran_cal",
-    # "De Haas Combined": "thijmen_mean_cal",
-    "PanCan2b": "PanCan2b",
-    "Sybil (Year 1)": "sybil_year1",
-}
-
-NLST_1172_MODELCOLS = {
-    # "Venkadesh21": "DL_cal",
-    "De Haas Combined": "Thijmen_mean_cal",
-    "De Haas Local": "Thijmen_local_cal",
-    "De Haas Global": "Thijmen_global_hidden_cal",
-    # "Sybil (Year 1)": "sybil_year1",
-    # "PanCan2b": "PanCan2b",
-}
-
 NLST_5911_MODELCOLS = {
     "Venkadesh21": "DL_cal",
-    # "De Haas Local": "Thijmen_local_cal",
-    # "De Haas Global": "Thijmen_global_hidden_cal",
     "Sybil (Year 1)": "sybil_year1",
     "PanCan2b": "PanCan2b",
 }
@@ -121,12 +97,7 @@ RENAME_POLICIES = {
 
 RENAME_MODELS = {
     "Venkadesh": "Venkadesh21",
-    "de Haas": "De Haas Combined",
-    "de Haas Combined": "De Haas Combined",
     "Sybil year 1": "Sybil (Year 1)",
-    "de Haas Local": "De Haas Local",
-    "de Haas Global (hidden nodule)": "De Haas Global",
-    "de Haas Global (shown nodule)": "De Haas Global (Shown Nodule)",
     "PanCan2b": "PanCan2b",
 }
 

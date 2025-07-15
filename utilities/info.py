@@ -23,7 +23,7 @@ RESULTS_DIR = f"{BASE_DIR}/melba-results-2"
 FIG_DIR = f"{BASE_DIR}/melba-figs-2"
 TAB_DIR = f"{BASE_DIR}/melba-tables-2"
 
-## Plot settings (adapted from Kiran and Thijmen's repos)
+## Plot settings
 sns.set_style("white")
 sns.set_theme(
     "talk",
@@ -35,10 +35,6 @@ color_palette = sns.color_palette("colorblind", 30)
 
 MODEL_TO_COL = {
     "Venkadesh": "DL_cal",
-    "de Haas Combined": "Thijmen_mean_cal",
-    "de Haas Local": "Thijmen_local_cal",
-    "de Haas Global (hidden nodule)": "Thijmen_global_hidden_cal",
-    "de Haas Global (shown nodule)": "Thijmen_global_show_cal",
     "Sybil year 1": "sybil_year1",
     "Sybil year 2": "sybil_year2",
     "Sybil year 3": "sybil_year3",
@@ -50,18 +46,7 @@ MODEL_TO_COL = {
 
 ILST_THRESHOLD = 0.06
 
-THRESHOLD_POLICIES = (
-    ("Sensitivity", 0.9),
-    # ("Sensitivity", 1.0),
-    ("Specificity", 0.9),
-    # ("Specificity", 1.0),
-    # ("Youden J", 1.0),  ## Max J statistic
-)
-
-DLCST_DEMOCOLS = {
-    "cat": {"demo": ["Sex"], "other": ["FamilyHistoryLungCa", "Emphysema"]},
-    "num": {"demo": ["Age"], "other": ["NoduleCountPerScan"]},
-}
+THRESHOLD_POLICIES = (("Sensitivity", 0.9), ("Specificity", 0.9))
 
 NLST_POSSIBLE_CONFOUNDERS = {
     "num": {

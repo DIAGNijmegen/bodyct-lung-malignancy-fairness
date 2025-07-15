@@ -11,7 +11,7 @@ import sklearn.metrics as skl_metrics
 from .data import *
 from .info import MODEL_TO_COL
 
-## Plot settings (adapted from Kiran and Thijmen's repos)
+## Plot settings
 sns.set_style("white")
 sns.set_theme(
     "talk",
