@@ -62,7 +62,7 @@ NLST_POSSIBLE_CONFOUNDERS = {
         "demo": [
             "Age > 61",
             "Gender",
-            "HighSchoolPlus",
+            # "HighSchoolPlus",
             # "Married",
             "Overweight",
             "ethnic",
