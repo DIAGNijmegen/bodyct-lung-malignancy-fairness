@@ -199,6 +199,8 @@ rename_cols = {
     "SliceCount": "Slices In Scan",
     "Overweight": "BMI",
     "educat": "Education Status",
+    "HS-or-more": "Graduated HS",
+    "more-than-HS": "Post-HS Education",
     "Gender": "Sex",
     "Married": "Married",
     "HighSchoolPlus": "HS Education",
