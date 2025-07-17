@@ -93,6 +93,8 @@ boolean_cols = [
     "Overweight",
     "Married",
     "HighSchoolPlus",
+    "HS-or-more",
+    "more-than-HS",
     "NonHispanicWhite",
     "Unfinished_ed",
     "smokelive",
