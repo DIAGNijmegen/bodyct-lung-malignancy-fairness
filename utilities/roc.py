@@ -493,7 +493,13 @@ def plot_rocs_isolate_confounder(
         for j, m in enumerate(models):
             title_str = f"{m} Split by {cat}\n{dataset_name}, {confounder}: {subset_name} (n={len(subset_df)})"
 
-            if is_boolean_col:
+            if confounder == "Work w/o Mask":
+                if str(subset_name).lower() in ["1", "1.0", "true"]:
+                    title_str = f"{dataset_name}, Worked Without Mask (n={len(subset_df)})\n{m} Split by {cat}"
+                if str(subset_name).lower() in ["0", "0.0", "false"]:
+                    title_str = f"{dataset_name}, Worked With Mask (n={len(subset_df)})\n{m} Split by {cat}"
+
+            elif is_boolean_col:
                 if str(subset_name).lower() in ["1", "1.0", "true"]:
                     title_str = f"{dataset_name}, {confounder} (n={len(subset_df)})\n{m} Split by {cat}"
                 elif str(subset_name).lower() in ["0", "0.0", "false"]:
