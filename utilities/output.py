@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import json
 from IPython.display import display, Markdown
 import sys
+import re
 
 sys.path.append("../")
 sys.path.append("./")
@@ -35,6 +36,14 @@ def latex_replace_arrowbrackets(s):
         .replace("<", "$<$")
         .replace(">", "$>$")
     )
+
+
+def latex_rotate_multirow(s):
+    out = s
+    if s in list(v.replace("%", "\\%") for k, v in RENAME_POLICIES.items()):
+        out = f"\\rotatebox[origin=c]{'{90}'}{{{s}}}"
+    out = latex_replace_arrowbrackets(out)
+    return out
 
 
 def dataset_malben_table(df, democols, label_col="label"):
