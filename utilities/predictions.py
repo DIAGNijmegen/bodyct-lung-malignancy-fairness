@@ -115,6 +115,9 @@ def sigmoid(x):
     return s
 
 
+## Function adapted from Sybil GitHub repository:
+#           https://github.com/reginabarzilaygroup/Sybil/blob/1e358f8069cb4d0986071ed50d9836200a6ed625/sybil/datasets/nlst.py#L322
+##      as mentioned in its GitHub issue #72 by Peter Mikhael (Sybil author).
 def sybil_label(row, max_followup=6):
     screen_timepoint = row["timepoint"]
     days_since_rand = row["scr_days{}".format(screen_timepoint)]
