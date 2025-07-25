@@ -178,3 +178,33 @@ def load_tijmen_results(
     df[label_name] = df[[f"y_fold{i}" for i in range(10)]].mean(axis=1)
     df["AnnotationID"] = df["img_names"]
     return df
+
+
+## Function adapted from Sybil GitHub repository:
+#           https://github.com/reginabarzilaygroup/Sybil/blob/1e358f8069cb4d0986071ed50d9836200a6ed625/sybil/datasets/nlst.py#L322
+##      as mentioned in its GitHub issue #72 by Peter Mikhael (Sybil author).
+def sybil_label(row, max_followup=6):
+    screen_timepoint = row["timepoint"]
+    days_since_rand = row["scr_days{}".format(screen_timepoint)]
+    days_to_cancer_since_rand = row["candx_days"]
+    days_to_cancer = days_to_cancer_since_rand - days_since_rand
+    years_to_cancer = (
+        int(days_to_cancer // 365) if days_to_cancer_since_rand > -1 else 100
+    )
+    days_to_last_followup = int(row["fup_days"] - days_since_rand)
+    years_to_last_followup = days_to_last_followup // 365
+    y = years_to_cancer < max_followup
+    y_seq = np.zeros(max_followup)
+    cancer_timepoint = row["cancyr"]
+    if y:
+        if years_to_cancer > -1:
+            assert screen_timepoint <= cancer_timepoint
+        time_at_event = years_to_cancer
+        y_seq[years_to_cancer:] = 1
+    else:
+        time_at_event = min(years_to_last_followup, max_followup - 1)
+    y_mask = np.array(
+        [1] * (time_at_event + 1) + [0] * (max_followup - (time_at_event + 1))
+    )
+    assert len(y_mask) == max_followup
+    return y

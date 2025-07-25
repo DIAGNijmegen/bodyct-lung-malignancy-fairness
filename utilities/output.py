@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import json
 from IPython.display import display, Markdown
 import sys
+import re
 
 sys.path.append("../")
 sys.path.append("./")
@@ -41,6 +42,87 @@ def latex_replace_arrowbrackets(s):
         .replace("<", "$<$")
         .replace(">", "$>$")
     )
+
+
+def latex_rotate_multirow(s):
+    out = s
+    if s in list(v.replace("%", "\\%") for k, v in RENAME_POLICIES.items()):
+        out = f"\\rotatebox[origin=c]{'{90}'}{{{s}}}"
+    out = latex_replace_arrowbrackets(out)
+    return out
+
+
+def dataset_malben_table(df, democols, label_col="label"):
+    mal = df.query(f"{label_col} == 1")
+    ben = df.query(f"{label_col} == 0")
+    print("full:", len(ben), "ben", len(mal), "mal")
+
+    dfsets = {
+        "MAL": mal,
+        "BEN": ben,
+        "ALL": df,
+    }
+
+    cat_df0 = data.combine_diff_dfs(
+        democols["cat"], data.diffs_category_prevalence, dfsets
+    )
+    cat_df0["Category"] = cat_df0["category"]
+    cat_df0["Characteristic"] = cat_df0["attribute"]
+    cat_df0["Subgroup"] = cat_df0["value"]
+    cat_df = cat_df0.copy(deep=True)
+
+    for s in dfsets:
+        cat_df[f"{s}_info"] = cat_df.apply(
+            lambda x: f'{0 if np.isnan(x[f"{s}_freq"]) else int(x[f"{s}_freq"])} ({0 if np.isnan(x[f"{s}_norm"]) else np.around(x[f"{s}_norm"], 1)})',
+            axis=1,
+        )
+
+    cat_df = cat_df[
+        ["Category", "Characteristic", "Subgroup"] + [f"{s}_info" for s in dfsets]
+    ].dropna(axis=0)
+    cat_df = cat_df.set_index(
+        pd.MultiIndex.from_frame(cat_df[["Category", "Characteristic", "Subgroup"]])
+    )[[f"{s}_info" for s in dfsets]]
+
+    ### Check invalid categories (< 2 valid subgroups)
+    attribute_valid_subgroups = (
+        cat_df0[cat_df0["MAL_freq"] > 15][["Characteristic", "Subgroup", "MAL_freq"]]
+        .groupby("Characteristic")["Subgroup"]
+        .count()
+    )
+    invalid_attributes = list(
+        attribute_valid_subgroups[attribute_valid_subgroups < 2].index
+    )
+    total_categorical_columns = cat_df0["Characteristic"].nunique()
+    print("invalid:", len(invalid_attributes))
+    print("valid:", total_categorical_columns - len(invalid_attributes))
+
+    num_df = data.combine_diff_dfs(democols["num"], data.diffs_numerical_means, dfsets)
+
+    num_df["Category"] = num_df["category"]
+    num_df["Characteristic"] = num_df["attribute"]
+    num_df["Subgroup"] = num_df["value"]
+
+    num_df = num_df[(num_df["Subgroup"].isin(["Median (IQR)"]))][
+        ["Category", "Characteristic", "Subgroup"] + [f"{s}" for s in dfsets]
+    ].dropna(axis=0)
+    num_df = num_df.set_index(
+        pd.MultiIndex.from_frame(num_df[["Category", "Characteristic", "Subgroup"]])
+    )[[f"{s}" for s in dfsets]]
+
+    multicol_idx = pd.Index(
+        [
+            f"Malignant (n={len(mal)})",
+            f"Benign (n={len(ben)})",
+            f"All Scans (n={len(df)})",
+        ]
+    )
+
+    cat_df.columns = multicol_idx
+    num_df.columns = multicol_idx
+
+    df_out = pd.concat([cat_df, num_df], axis=0)
+    return df_out, invalid_attributes
 
 
 def prettify_result_val(attribute, group):
@@ -203,7 +285,6 @@ RENAME_METRICS_lo = {f"{k}_lo": f"{v}_lo" for k, v in RENAME_METRICS.items()}
 
 def threshold_stats_pretty(df, policies, demographic_for_isolations=None):
     policies.rename(columns=RENAME_POLICIES, inplace=True)
-
     df["policy"] = df["policy"].replace(RENAME_POLICIES)
     df["model"] = df.apply(lambda row: COL_TO_MODEL[row["col"]], axis=1)
     if df["category"].iloc[0] in data.rename_types.keys():

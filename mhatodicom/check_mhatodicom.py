@@ -17,6 +17,7 @@ DATA_DIR = f"{EXPERIMENT_DIR}/{DATASET_NAME}"
 
 csv_path = f"{DATA_DIR}/mhatodicom_check.csv"
 
+
 def check_mha_dicom(mha_file, output_dir, pixel_dtype=np.int16):
     try:
         assert pixel_dtype in [np.int16, np.float64]
@@ -26,21 +27,26 @@ def check_mha_dicom(mha_file, output_dir, pixel_dtype=np.int16):
         elif pixel_dtype == np.float64:
             mha_image = sitk.ReadImage(str(mha_file), sitk.sitkFloat64)
 
-        fail_slices = mhatodicom.check_all_slices_created(output_dir, mha_image.GetDepth())
-        
+        fail_slices = mhatodicom.check_all_slices_created(
+            output_dir, mha_image.GetDepth()
+        )
+
         if len(fail_slices) > 0:
-            print(f"ERROR: {output_dir} - slices missing: {fail_slices}", file=sys.stderr)
+            print(
+                f"ERROR: {output_dir} - slices missing: {fail_slices}", file=sys.stderr
+            )
             return False
         return True
     except:
         print(f"ERROR: {output_dir} - something went wrong :(", file=sys.stderr)
         return False
-    
+
+
 def mha_dicom_process(i, total, series_instance_uid):
     src_dir = f"{root_dir}/experiments/0-{DATASET_NAME}-mha"
     output_folder_path = f"{DATA_DIR}/DICOM_files"
 
-    mha_filename = series_instance_uid + '.mha'
+    mha_filename = series_instance_uid + ".mha"
     mha_filepath = os.path.join(src_dir, mha_filename)
 
     print(f"{i+1} / {total}: checking {series_instance_uid} ... ")
@@ -50,28 +56,35 @@ def mha_dicom_process(i, total, series_instance_uid):
         if success:
             print(f"{i+1} / {total}: SUCCESSfully converted")
             return True
-        if not success: 
+        if not success:
             print(f"{i+1} / {total}: FAILED to convert {series_instance_uid}")
             return False
     else:
         print(f"File {mha_filename} not found in the source directory.")
         return False
 
+
 if __name__ == "__main__":
     print("Reading DataFrame")
     df = pd.read_csv(csv_path)
-    df = df[(~df['Thijmen_mean'].isna()) & (df['InSybilTrain'] == False)]
-    df = df.drop_duplicates(subset=['SeriesInstanceUID'], ignore_index=True)
-    df = df.query('mhaDicomConverted == False')
+    df = df[df["InSybilTrain"] == False]
+    df = df.drop_duplicates(subset=["SeriesInstanceUID"], ignore_index=True)
+    df = df.query("mhaDicomConverted == False")
 
-    series_instance_uids = pd.unique(df['SeriesInstanceUID']).tolist()
+    series_instance_uids = pd.unique(df["SeriesInstanceUID"]).tolist()
     print(len(series_instance_uids), " series instance uids")
 
     print("Starting!")
     converterpool = multiprocessing.Pool()
-    result_bools = converterpool.starmap(mha_dicom_process, 
-                        zip(range(len(series_instance_uids)), [len(series_instance_uids)] * len(series_instance_uids), series_instance_uids))
-    
+    result_bools = converterpool.starmap(
+        mha_dicom_process,
+        zip(
+            range(len(series_instance_uids)),
+            [len(series_instance_uids)] * len(series_instance_uids),
+            series_instance_uids,
+        ),
+    )
+
     # df['mhaDicomConverted'] = result_bools
-    # df[['SeriesInstanceUID', 'InSybilTrain', 'Thijmen_mean', 'mhaDicomConverted', 'PatientID', 'StudyDate']].to_csv(f"{DATA_DIR}/mhatodicom_check.csv", index=False)
+    # df[['SeriesInstanceUID', 'InSybilTrain', 'mhaDicomConverted', 'PatientID', 'StudyDate']].to_csv(f"{DATA_DIR}/mhatodicom_check.csv", index=False)
     print("Finished!")

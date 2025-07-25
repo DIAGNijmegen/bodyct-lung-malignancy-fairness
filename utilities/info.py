@@ -15,14 +15,15 @@ from IPython.display import display, Markdown
 CHANSEY_ROOT = "/data/bodyct"  ## or "W:"
 EXPERIMENT_DIR = f"{CHANSEY_ROOT}/experiments/lung-malignancy-fairness-shaurya"
 TEAMS_DIR = "C:/Users/shaur/OneDrive - Radboudumc/Documents - Master - Shaurya Gaur/General/Data"
+BASE_DIR = TEAMS_DIR
 
-INPUT_DIR = f"{TEAMS_DIR}/inputs"
-FILE_DIR = f"{TEAMS_DIR}/files"
-RESULTS_DIR = f"{TEAMS_DIR}/results"
-FIG_DIR = f"{TEAMS_DIR}/thesis-figs"
-TAB_DIR = f"{TEAMS_DIR}/thesis-tables"
+INPUT_DIR = f"{BASE_DIR}/inputs"
+FILE_DIR = f"{BASE_DIR}/files"
+RESULTS_DIR = f"{BASE_DIR}/results"
+FIG_DIR = f"{BASE_DIR}/thesis-figs"
+TAB_DIR = f"{BASE_DIR}/thesis-tables"
 
-## Plot settings (adapted from Kiran and Thijmen's repos)
+## Plot settings
 sns.set_style("white")
 sns.set_theme(
     "talk",
@@ -76,7 +77,7 @@ NLST_POSSIBLE_CONFOUNDERS = {
         "demo": [
             "Age > 61",
             "Gender",
-            "HighSchoolPlus",
+            # "HighSchoolPlus",
             # "Married",
             "Overweight",
             "ethnic",
@@ -148,7 +149,6 @@ NLST_POSSIBLE_CONFOUNDERS = {
         "nodule": [
             "GroundGlassOpacity",
             "NoduleInUpperLung",
-            # "NoduleType",
             "Perifissural",
             "NonSolid",
             "Calcified",
