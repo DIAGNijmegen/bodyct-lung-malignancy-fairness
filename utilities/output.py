@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import json
 from IPython.display import display, Markdown
 import sys
+import re
 
 sys.path.append("../")
 sys.path.append("./")
@@ -22,12 +23,6 @@ TABLE_SCORE_PRECISION = 2
 
 COL_TO_MODEL = {
     "DL_cal": "Venkadesh21",
-    "Ensemble_Kiran_cal": "Venkadesh21",  ## DLCST
-    "thijmen_mean_cal": "De Haas Combined",  ## DLCST
-    "Thijmen_mean_cal": "De Haas Combined",
-    "Thijmen_local_cal": "De Haas Local",
-    "Thijmen_global_hidden_cal": "De Haas Global",
-    "Thijmen_global_show_cal": "De Haas Global (Shown Nodule)",
     "sybil_year1": "Sybil (Year 1)",
     "PanCan2b": "PanCan2b",
 }
@@ -41,6 +36,87 @@ def latex_replace_arrowbrackets(s):
         .replace("<", "$<$")
         .replace(">", "$>$")
     )
+
+
+def latex_rotate_multirow(s):
+    out = s
+    if s in list(v.replace("%", "\\%") for k, v in RENAME_POLICIES.items()):
+        out = f"\\rotatebox[origin=c]{'{90}'}{{{s}}}"
+    out = latex_replace_arrowbrackets(out)
+    return out
+
+
+def dataset_malben_table(df, democols, label_col="label"):
+    mal = df.query(f"{label_col} == 1")
+    ben = df.query(f"{label_col} == 0")
+    print("full:", len(ben), "ben", len(mal), "mal")
+
+    dfsets = {
+        "MAL": mal,
+        "BEN": ben,
+        "ALL": df,
+    }
+
+    cat_df0 = data.combine_diff_dfs(
+        democols["cat"], data.diffs_category_prevalence, dfsets
+    )
+    cat_df0["Category"] = cat_df0["category"]
+    cat_df0["Characteristic"] = cat_df0["attribute"]
+    cat_df0["Subgroup"] = cat_df0["value"]
+    cat_df = cat_df0.copy(deep=True)
+
+    for s in dfsets:
+        cat_df[f"{s}_info"] = cat_df.apply(
+            lambda x: f'{0 if np.isnan(x[f"{s}_freq"]) else int(x[f"{s}_freq"])} ({0 if np.isnan(x[f"{s}_norm"]) else np.around(x[f"{s}_norm"], 1)})',
+            axis=1,
+        )
+
+    cat_df = cat_df[
+        ["Category", "Characteristic", "Subgroup"] + [f"{s}_info" for s in dfsets]
+    ].dropna(axis=0)
+    cat_df = cat_df.set_index(
+        pd.MultiIndex.from_frame(cat_df[["Category", "Characteristic", "Subgroup"]])
+    )[[f"{s}_info" for s in dfsets]]
+
+    ### Check invalid categories (< 2 valid subgroups)
+    attribute_valid_subgroups = (
+        cat_df0[cat_df0["MAL_freq"] > 15][["Characteristic", "Subgroup", "MAL_freq"]]
+        .groupby("Characteristic")["Subgroup"]
+        .count()
+    )
+    invalid_attributes = list(
+        attribute_valid_subgroups[attribute_valid_subgroups < 2].index
+    )
+    total_categorical_columns = cat_df0["Characteristic"].nunique()
+    print("invalid:", len(invalid_attributes))
+    print("valid:", total_categorical_columns - len(invalid_attributes))
+
+    num_df = data.combine_diff_dfs(democols["num"], data.diffs_numerical_means, dfsets)
+
+    num_df["Category"] = num_df["category"]
+    num_df["Characteristic"] = num_df["attribute"]
+    num_df["Subgroup"] = num_df["value"]
+
+    num_df = num_df[(num_df["Subgroup"].isin(["Median (IQR)"]))][
+        ["Category", "Characteristic", "Subgroup"] + [f"{s}" for s in dfsets]
+    ].dropna(axis=0)
+    num_df = num_df.set_index(
+        pd.MultiIndex.from_frame(num_df[["Category", "Characteristic", "Subgroup"]])
+    )[[f"{s}" for s in dfsets]]
+
+    multicol_idx = pd.Index(
+        [
+            f"Malignant (n={len(mal)})",
+            f"Benign (n={len(ben)})",
+            f"All Scans (n={len(df)})",
+        ]
+    )
+
+    cat_df.columns = multicol_idx
+    num_df.columns = multicol_idx
+
+    df_out = pd.concat([cat_df, num_df], axis=0)
+    return df_out, invalid_attributes
 
 
 def prettify_result_val(attribute, group):
@@ -89,26 +165,8 @@ def pretty_interval(row, precision, group_num=1, metric="AUC"):
     return f"{row[f'{metric}_{group_num}']:.{precision}f} ({row[f'{metric}-CI-lo_{group_num}']:.{precision}f}, {row[f'{metric}-CI-hi_{group_num}']:.{precision}f})"
 
 
-DLCST_MODELCOLS = {
-    "Venkadesh21": "Ensemble_Kiran_cal",
-    # "De Haas Combined": "thijmen_mean_cal",
-    "PanCan2b": "PanCan2b",
-    "Sybil (Year 1)": "sybil_year1",
-}
-
-NLST_1172_MODELCOLS = {
-    # "Venkadesh21": "DL_cal",
-    "De Haas Combined": "Thijmen_mean_cal",
-    "De Haas Local": "Thijmen_local_cal",
-    "De Haas Global": "Thijmen_global_hidden_cal",
-    # "Sybil (Year 1)": "sybil_year1",
-    # "PanCan2b": "PanCan2b",
-}
-
 NLST_5911_MODELCOLS = {
     "Venkadesh21": "DL_cal",
-    # "De Haas Local": "Thijmen_local_cal",
-    # "De Haas Global": "Thijmen_global_hidden_cal",
     "Sybil (Year 1)": "sybil_year1",
     "PanCan2b": "PanCan2b",
 }
@@ -121,12 +179,7 @@ RENAME_POLICIES = {
 
 RENAME_MODELS = {
     "Venkadesh": "Venkadesh21",
-    "de Haas": "De Haas Combined",
-    "de Haas Combined": "De Haas Combined",
     "Sybil year 1": "Sybil (Year 1)",
-    "de Haas Local": "De Haas Local",
-    "de Haas Global (hidden nodule)": "De Haas Global",
-    "de Haas Global (shown nodule)": "De Haas Global (Shown Nodule)",
     "PanCan2b": "PanCan2b",
 }
 

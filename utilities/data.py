@@ -18,16 +18,7 @@ import warnings
 
 MODEL_TO_COL = {
     "Venkadesh": "DL_cal",
-    "de Haas Combined": "Thijmen_mean_cal",
-    "de Haas Local": "Thijmen_local_cal",
-    "de Haas Global (hidden nodule)": "Thijmen_global_hidden_cal",
-    "de Haas Global (shown nodule)": "Thijmen_global_show_cal",
     "Sybil year 1": "sybil_year1",
-    # "Sybil year 2": "sybil_year2",
-    # "Sybil year 3": "sybil_year3",
-    # "Sybil year 4": "sybil_year4",
-    # "Sybil year 5": "sybil_year5",
-    # "Sybil year 6": "sybil_year6",
     "PanCan2b": "PanCan2b",
 }
 
@@ -35,6 +26,7 @@ keys = {
     "Gender": {1: "Male", 2: "Female"},
     "Sex": {1: "Male", 2: "Female"},
     "Overweight": {True: "≥ 25", False: "< 25"},
+    "HS-or-more": {True: "≥ HS", False: "< HS"},
     "race": {
         1: "White",
         2: "Black",
@@ -102,6 +94,8 @@ boolean_cols = [
     "Overweight",
     "Married",
     "HighSchoolPlus",
+    # "HS-or-more",
+    "more-than-HS",
     "NonHispanicWhite",
     "Unfinished_ed",
     "smokelive",
@@ -190,9 +184,6 @@ rename_types = {
 }
 
 rename_cols = {
-    ### DLCST
-    "Sex": "Sex",
-    "NoduleCountPerScan": "Nodules Per Scan",
     ### NLST
     "BMI": "Body Mass Index",
     "Age": "Age",
@@ -211,6 +202,8 @@ rename_cols = {
     "SliceCount": "Slices In Scan",
     "Overweight": "BMI",
     "educat": "Education Status",
+    "HS-or-more": "Education",
+    "more-than-HS": "Post-HS Education",
     "Gender": "Sex",
     "Married": "Married",
     "HighSchoolPlus": "HS Education",
@@ -329,7 +322,6 @@ def prep_nlst_preds(
     democols=None,
     scanlevel=True,
     sybil=True,
-    tijmen=False,
     bin_num=True,
     pretty=False,
 ):
@@ -360,14 +352,6 @@ def prep_nlst_preds(
             "DL",
             "PanCan2b",
             "label",
-            "Thijmen_mean",
-            "Thijmen_global_hidden",
-            "Thijmen_global_show",
-            "Thijmen_local",
-            "Thijmen_mean_cal",
-            "Thijmen_global_hidden_cal",
-            "Thijmen_global_show_cal",
-            "Thijmen_local_cal",
             "DL_cal",
         ]
         # Not including Sybil here because it's already scan-level of course.
@@ -393,11 +377,6 @@ def prep_nlst_preds(
             if f"Sybil year {i+1}" in models.keys():
                 models.pop(f"Sybil year {i+1}")
 
-    if not tijmen:
-        models.pop("de Haas Combined")
-
-    if tijmen:
-        df = df[(~df["Thijmen_mean"].isna())]
     if sybil:
         df = df[(~df["sybil_year1"].isna())]
 
@@ -416,14 +395,13 @@ def bin_numerical_columns(df, democols, pretty=False):
 
     ### Cutoff values - incldue in the left interval.
     cutoff_values = {
-        "height": 68,  ###
-        "weight": 180,  ###
-        "smokeage": 16,  ###
-        "smokeday": 25,  ###
-        "smokeyr": 40,  ###
-        "pkyr": 55,  ###
-        "NoduleCounts": 1,  ### NLST
-        "NoduleCountPerScan": 1,  ### DLCST
+        "height": 68,
+        "weight": 180,
+        "smokeage": 16,
+        "smokeday": 25,
+        "smokeyr": 40,
+        "pkyr": 55,
+        "NoduleCounts": 1,
         "Diameter_mm": 6,  ### previously 7. based on some screening guidelines (BTS, ILST, Lung-RADS)
         "Age": 61,  ### 62 or over. based on data median.
         "SliceCount": 200,  ### Truncated by Sybil preprocessing
