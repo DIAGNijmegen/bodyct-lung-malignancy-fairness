@@ -172,8 +172,8 @@ NLST_5911_MODELCOLS = {
 }
 
 RENAME_POLICIES = {
-    "Sensitivity=0.9": "90% Sensitivity",
-    "Specificity=0.9": "90% Specificity",
+    "Sensitivity=0.9": "90% Overall Sensitivity",
+    "Specificity=0.9": "90% Overall Specificty",
     "Brock": "Brock ILST (6%)",
 }
 
@@ -752,8 +752,8 @@ def threshold_isolation_pairwise(
     model,
     policies,
     metric_tuples=[
-        ("Sensitivity", "90% Specificity"),
-        ("Specificity", "90% Sensitivity"),
+        ("Sensitivity", "90% Overall Specificty"),
+        ("Specificity", "90% Overall Sensitivity"),
     ],
     topn_confs=None,
     precision=TABLE_SCORE_PRECISION,
